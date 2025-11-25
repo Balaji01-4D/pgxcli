@@ -4,8 +4,12 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package main
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"os"
+	"pgcli/internals/pg"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -53,7 +57,36 @@ It aims to provide a simple, scriptable interface for everyday database tasks su
         fmt.Println("Final Database:", database)
         fmt.Println("Final User:", user)
 
-		
+
+		if strings.Contains(database, "://") {
+			ctx := context.Background()
+			pool, err := pg.Connect(ctx, database)
+			if err != nil {
+				panic(err)
+			}
+			defer pool.Close()
+
+			exec := pg.NewExecutor(pool)
+			st, err := exec.Query(ctx, "SELECT * FROM students")
+			if err != nil {
+				panic(err)
+			}
+			defer st.Close()
+			fmt.Println(st.Columns())
+			fmt.Println(st.Duration())
+
+			for {
+				row, err := st.Next()
+				if err != nil {
+					if err == io.EOF {
+						break
+					} else {
+						panic(err)
+					}
+				}
+				fmt.Println(row)
+			}
+		}
 
 	},
 

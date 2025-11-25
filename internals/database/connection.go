@@ -7,7 +7,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-
+// connects to the PostgreSQL database using the provided DSN (Data Source Name)
+// ex: postgres://user:password@localhost:5432/mydb
 func Connect(ctx context.Context, dsn string) (*pgxpool.Pool, error) {
 	cfg, err := pgxpool.ParseConfig(dsn)
 	if err != nil {

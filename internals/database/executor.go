@@ -8,6 +8,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+
+// skip these two interfaces for now
 type Tx interface {
 	Query(ctx context.Context, sql string, args ...interface{}) (*QueryResult, error)
 	Exec(ctx context.Context, sql string, args ...interface{}) (*ExecResult, error)
@@ -19,16 +21,20 @@ type Result interface {
 	GetType() string
 }
 
+
+// executor struct to execute queries
 type Executor struct {
 	Pool *pgxpool.Pool
 }
 
+// constructor function to create new executor
 func NewExecutor(pool *pgxpool.Pool) Executor {
 	return Executor{
 		Pool: pool,
 	}
 }
 
+// For executing queries like SELECT, SHOW etc.
 func (e *Executor) query(ctx context.Context, sql string, args ...interface{}) (*QueryResult, error) {
 	start := time.Now()
 	rows, err := e.Pool.Query(ctx, sql, args...)
@@ -50,6 +56,7 @@ func (e *Executor) query(ctx context.Context, sql string, args ...interface{}) (
 	}, nil
 }
 
+// For executing commands like INSERT, UPDATE, DELETE etc.
 func (e *Executor) exec(ctx context.Context, sql string, args ...interface{}) (*ExecResult, error) {
 	start := time.Now()
 	tag, err := e.Pool.Exec(ctx, sql, args...)
@@ -65,6 +72,7 @@ func (e *Executor) exec(ctx context.Context, sql string, args ...interface{}) (*
 
 }
 
+// Execute method to determine whether to run query or exec based on SQL type
 func (e *Executor) Execute(ctx context.Context, sql string, args ...interface{}) (Result, error) {
 	if parser.IsQuery(sql) {
 		return e.query(ctx, sql, args...)

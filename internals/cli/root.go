@@ -27,28 +27,32 @@ var rootCmd = &cobra.Command{
 	Short: "Interactive PostgreSQL command-line client for querying and managing databases.",
 	Version: GetVersion(),
 
-	Args: cobra.MaximumNArgs(2),
+	Args: cobra.MaximumNArgs(2),   // allowing maximum 2 args: DBNAME and USERNAME
 	Run: func(cmd *cobra.Command, args []string) { 
 		
 
-		var argDB string
-		var argUser string 
+		var argDB string		//  for storing positional DBNAME argument ex: pgcli mydb then argDB = "mydb"
+		var argUser string 		// for storing positional USERNAME argument ex: pgcli mydb myuser then argUser = "myuser"
 
 		if len(args) > 0 {
-			argDB = args[0]
+			argDB = args[0]   // first argument as DBNAME
 		}
 		if len(args) > 1 {
-			argUser = args[1]
+			argUser = args[1] // second argument as USERNAME
 		}
 
 
+		// when pgcli -d mydb myuser, here database name is given as flag then next arguement is considered as user
         db, _ := resolveDBAndUser(dbnameOpt, usernameOpt, argDB, argUser)
+		// currently we dont use the user
 
-		
+		// currently supporting only DSN connection string example pgcli postgres://user:pass@localhost:5432/mydb
 		if strings.Contains(db, "://") {
 			fmt.Println("Connecting using DSN:", db)
 			ctx := context.Background()
 
+			// connecting to database using DSN
+			// connection pool which manages multiple connections to the database
 			pool, err := database.Connect(ctx, db)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error connecting to database: %v\n", err)
@@ -56,7 +60,11 @@ var rootCmd = &cobra.Command{
 			}
 			defer pool.Close()
 
+			// creating executor to execute queries such as SELECT, INSERT, UPDATE, DELETE
 			exec := database.NewExecutor(pool)
+			// starting REPL with context and executor
+			// because REPL needs to execute queries so passing executor
+			// repl - read evaluate print loop
 			repl.StartREPL(ctx, exec)
 
 		}

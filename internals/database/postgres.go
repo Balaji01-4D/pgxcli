@@ -13,27 +13,23 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-
-
 type Postgres struct {
-	CurrentBD string
-	Executor  *Executor
+	CurrentBD           string
+	Executor            *Executor
 	ForcePasswordPrompt bool
-	NeverPasswordPrompt  bool
-	ctx context.Context
+	NeverPasswordPrompt bool
+	ctx                 context.Context
 }
-
 
 func NewPostgres(neverPasswordPrompt, forcePasswordPrompt bool, ctx context.Context) *Postgres {
 	return &Postgres{
 		NeverPasswordPrompt: neverPasswordPrompt,
 		ForcePasswordPrompt: forcePasswordPrompt,
-		ctx:                ctx,
+		ctx:                 ctx,
 	}
 }
 
 func (p *Postgres) Connect(host, user, password, database, dsn string, port uint16) error {
-
 
 	if user == "" {
 		currentUser, err := osUser.Current()
@@ -58,7 +54,6 @@ func (p *Postgres) Connect(host, user, password, database, dsn string, port uint
 		password = strings.TrimSpace(pwd)
 	}
 
-
 	if dsn != "" {
 		parsedDsn, err := pgx.ParseConfig(dsn)
 		if err != nil {
@@ -68,7 +63,6 @@ func (p *Postgres) Connect(host, user, password, database, dsn string, port uint
 		host = parsedDsn.Host
 		port = parsedDsn.Port
 	}
-	logger.Log.Debug(fmt.Sprintf("Parsed DSN: host=%s, user=%s, database=%s, port=%d", host, user, database, port))
 
 	exec, err := NewExecutor(host, database, user, password, port, dsn, p.ctx)
 	if err != nil {
@@ -77,11 +71,9 @@ func (p *Postgres) Connect(host, user, password, database, dsn string, port uint
 	p.Executor = exec
 	p.CurrentBD = database
 
-	logger.Log.Info("Connected to database %s as user %s on host %s:%d", database, user, host, port)
 	return nil
 
 }
-
 
 func (p *Postgres) ConnectDSN(dsn string) error {
 	return p.Connect("", "", "", "", dsn, 0)
@@ -92,10 +84,8 @@ func (p *Postgres) ConnectURI(uri string) error {
 	if err != nil {
 		return fmt.Errorf("failed to parse URI: %w", err)
 	}
-	logger.Log.Info(fmt.Sprintf("Parsed URI: host=%s, user=%s, database=%s, port=%d", parsedURI.Host, parsedURI.User, parsedURI.Database, parsedURI.Port))
 	return p.Connect(parsedURI.Host, parsedURI.User, parsedURI.Password, parsedURI.Database, "", parsedURI.Port)
 }
-
 
 func (p *Postgres) Close() {
 	if p.Executor != nil {
@@ -107,6 +97,16 @@ func (p *Postgres) IsConnected() bool {
 	return p.Executor != nil && p.Executor.IsConnected()
 }
 
+func (p *Postgres) GetConnectionInfo() {
+	logger.Log.Debug("Connection information", 
+		"connection string", p.Executor.Pool.Config().ConnString(),
+		"host", p.Executor.Host,
+		"Port", p.Executor.Port,
+		"Database", p.Executor.Database,
+		"User", p.Executor.User,
+		"URI", p.Executor.URI,
+	)
+}
 
 func (p *Postgres) RunCli() error {
 	if !p.IsConnected() {
@@ -132,7 +132,6 @@ func (p *Postgres) RunCli() error {
 
 	return nil
 }
-
 
 func HandleResult(result Result) {
 	switch res := result.(type) {

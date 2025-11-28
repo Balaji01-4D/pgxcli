@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"pgcli/internals/logger"
 	"pgcli/internals/parser"
 	"time"
 
@@ -40,9 +41,14 @@ func NewExecutor(host, database string, user string, password string,
 	port uint16, dsn string, ctx context.Context) (*Executor, error) {
 
 	if dsn == "" {
+		if host == "" {
+			host = "localhost"
+		}
+		if port == 0 {
+			port = 5432
+		}
 		dsn = fmt.Sprintf("host=%s port=%d user=%s dbname=%s password=%s", host, port, user, database, password)
 	}
-	
 
 	// create a new connection pool
 	pool, err := pgxpool.New(ctx, dsn)
@@ -128,4 +134,17 @@ func (e *Executor) Ping(ctx context.Context) error {
 
 func (e *Executor) IsConnected() bool {
 	return e.Pool != nil
+}
+
+
+func (e *Executor) GetConnectionInfo() {
+	cfg := e.Pool.Config()
+	logger.Log.Debug("Connection information",
+		"connection string", cfg.ConnString(),
+		"host", cfg.ConnConfig.Host,
+		"port", cfg.ConnConfig.Port,
+		"database", cfg.ConnConfig.Database,
+		"user", cfg.ConnConfig.User,
+		"password", cfg.ConnConfig.Password,
+	)
 }

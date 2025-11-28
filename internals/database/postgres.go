@@ -68,6 +68,7 @@ func (p *Postgres) Connect(host, user, password, database, dsn string, port uint
 		host = parsedDsn.Host
 		port = parsedDsn.Port
 	}
+	logger.Log.Debug(fmt.Sprintf("Parsed DSN: host=%s, user=%s, database=%s, port=%d", host, user, database, port))
 
 	exec, err := NewExecutor(host, database, user, password, port, dsn, p.ctx)
 	if err != nil {
@@ -91,6 +92,7 @@ func (p *Postgres) ConnectURI(uri string) error {
 	if err != nil {
 		return fmt.Errorf("failed to parse URI: %w", err)
 	}
+	logger.Log.Info(fmt.Sprintf("Parsed URI: host=%s, user=%s, database=%s, port=%d", parsedURI.Host, parsedURI.User, parsedURI.Database, parsedURI.Port))
 	return p.Connect(parsedURI.Host, parsedURI.User, parsedURI.Password, parsedURI.Database, "", parsedURI.Port)
 }
 

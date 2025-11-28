@@ -87,9 +87,7 @@ func (r *QueryResult) Render() string {
 			return "Error fetching rows: " + err.Error()
 		}
 		row := make(table.Row, len(values))
-		for i, val := range values {
-			row[i] = val
-		}
+		copy(row, values)
 		tw.AppendRow(row)
 	}
 

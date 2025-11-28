@@ -73,6 +73,12 @@ var rootCmd = &cobra.Command{
 				os.Exit(1)
 			}
 		}
+
+		if !postgres.IsConnected() {
+			fmt.Fprintf(os.Stderr, "Not connected to any database\n")
+			os.Exit(1)
+		}
+		postgres.RunCli()
 	},
 }
 

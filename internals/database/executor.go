@@ -39,6 +39,11 @@ type Executor struct {
 func NewExecutor(host, database string, user string, password string,
 	port uint16, dsn string, ctx context.Context) (*Executor, error) {
 
+	if dsn == "" {
+		dsn = fmt.Sprintf("host=%s port=%d user=%s dbname=%s password=%s", host, port, user, database, password)
+	}
+	
+
 	// create a new connection pool
 	pool, err := pgxpool.New(ctx, dsn)
 	if err != nil {

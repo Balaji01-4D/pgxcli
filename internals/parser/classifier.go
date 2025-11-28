@@ -2,7 +2,6 @@ package parser
 
 import pg_query "github.com/pganalyze/pg_query_go/v6"
 
-
 func CommandType(sql string) string {
 	tree, err := pg_query.Parse(sql)
 	if err != nil {
@@ -48,12 +47,9 @@ func CommandType(sql string) string {
 	return "QUERY"
 }
 
-
-
 func IsQuery(sql string) bool {
 	return CommandType(sql) == "QUERY"
 }
-
 
 func IsExecute(sql string) bool {
 	return CommandType(sql) == "EXECUTE"

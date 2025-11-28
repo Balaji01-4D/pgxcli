@@ -70,6 +70,7 @@ func (p *Postgres) Connect(host, user, password, database, dsn string, port uint
 	}
 	p.Executor = exec
 	p.CurrentBD = database
+	logger.Log.Info("Database connection established", "database", database, "user", user)
 
 	return nil
 
@@ -98,7 +99,7 @@ func (p *Postgres) IsConnected() bool {
 }
 
 func (p *Postgres) GetConnectionInfo() {
-	logger.Log.Debug("Connection information", 
+	logger.Log.Debug("Connection information",
 		"connection string", p.Executor.Pool.Config().ConnString(),
 		"host", p.Executor.Host,
 		"Port", p.Executor.Port,
@@ -124,6 +125,7 @@ func (p *Postgres) RunCli() error {
 
 		result, err := p.Executor.Execute(p.ctx, query)
 		if err != nil {
+			logger.Log.Error("Query execution failed", "error", err)
 			fmt.Fprintf(os.Stderr, "Error executing query: %v\n", err)
 			continue
 		}

@@ -32,6 +32,7 @@ var rootCmd = &cobra.Command{
 
 
 		logger.InitLogger(debug, "pgcli-go.log")
+		logger.Log.Info("pgcli started")
 
 		var argDB string   //  for storing positional DBNAME argument ex: pgcli mydb then argDB = "mydb"
 		var argUser string // for storing positional USERNAME argument ex: pgcli mydb myuser then argUser = "myuser"
@@ -65,16 +66,16 @@ var rootCmd = &cobra.Command{
 				fmt.Fprintf(os.Stderr, "Error connecting to database: %v\n", err)
 				os.Exit(1)
 			}
-		} else {
-			err := postgres.Connect(host, finalUser, "", finalDB, "", port)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error connecting to database: %v\n", err)
-				logger.Log.Error("Error connecting to database", "error", err)
-				os.Exit(1)
-			}
+	} else {
+		logger.Log.Info("Connecting to database", "host", host, "port", port, "database", finalDB, "user", finalUser)
+		err := postgres.Connect(host, finalUser, "", finalDB, "", port)
+		if err != nil {
+			logger.Log.Error("Connection failed", "error", err, "host", host, "database", finalDB)
+			fmt.Fprintf(os.Stderr, "Error connecting to database: %v\n", err)
+			os.Exit(1)
 		}
-
-		if !postgres.IsConnected() {
+	}
+			if !postgres.IsConnected() {
 			fmt.Fprintf(os.Stderr, "Not connected to any database\n")
 			os.Exit(1)
 		}

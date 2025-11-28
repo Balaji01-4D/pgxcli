@@ -34,8 +34,6 @@ type Executor struct {
 	Pool     *pgxpool.Pool
 }
 
-
-
 // constructor function to create new executor
 func NewExecutor(host, database string, user string, password string,
 	port uint16, dsn string, ctx context.Context) (*Executor, error) {
@@ -48,17 +46,20 @@ func NewExecutor(host, database string, user string, password string,
 			port = 5432
 		}
 		dsn = fmt.Sprintf("host=%s port=%d user=%s dbname=%s password=%s", host, port, user, database, password)
+		logger.Log.Debug("Constructed DSN", "host", host, "port", port, "user", user, "database", database)
 	}
 
 	// create a new connection pool
 	pool, err := pgxpool.New(ctx, dsn)
 	if err != nil {
+		logger.Log.Error("Failed to create connection pool", "error", err)
 		return nil, err
 	}
 
 	// test the connection
 	err = pool.Ping(ctx)
 	if err != nil {
+		logger.Log.Error("Connection ping failed", "error", err)
 		return nil, err
 	}
 	return &Executor{
@@ -74,9 +75,11 @@ func NewExecutor(host, database string, user string, password string,
 
 // For executing queries like SELECT, SHOW etc.
 func (e *Executor) query(ctx context.Context, sql string, args ...interface{}) (*QueryResult, error) {
+	logger.Log.Debug("Executing query", "sql", sql)
 	start := time.Now()
 	rows, err := e.Pool.Query(ctx, sql, args...)
 	if err != nil {
+		logger.Log.Error("Query failed", "error", err, "sql", sql)
 		return nil, err
 	}
 	dur := time.Since(start)
@@ -85,6 +88,7 @@ func (e *Executor) query(ctx context.Context, sql string, args ...interface{}) (
 	for i, fd := range fds {
 		columns[i] = fd.Name
 	}
+	logger.Log.Info("Query completed", "duration_ms", dur.Milliseconds(), "columns", len(columns))
 	return &QueryResult{
 		rowStreamer: rowStreamer{
 			rows:     rows,
@@ -96,12 +100,15 @@ func (e *Executor) query(ctx context.Context, sql string, args ...interface{}) (
 
 // For executing commands like INSERT, UPDATE, DELETE etc.
 func (e *Executor) exec(ctx context.Context, sql string, args ...interface{}) (*ExecResult, error) {
+	logger.Log.Debug("Executing command", "sql", sql)
 	start := time.Now()
 	tag, err := e.Pool.Exec(ctx, sql, args...)
 	if err != nil {
+		logger.Log.Error("Command failed", "error", err, "sql", sql)
 		return nil, err
 	}
 	dur := time.Since(start)
+	logger.Log.Info("Command completed", "duration_ms", dur.Milliseconds(), "rows_affected", tag.RowsAffected(), "status", tag.String())
 	return &ExecResult{
 		RowsAffected: tag.RowsAffected(),
 		Status:       tag.String(),
@@ -131,20 +138,16 @@ func (e *Executor) Ping(ctx context.Context) error {
 	return e.Pool.Ping(ctx)
 }
 
-
 func (e *Executor) IsConnected() bool {
 	return e.Pool != nil
 }
 
-
 func (e *Executor) GetConnectionInfo() {
 	cfg := e.Pool.Config()
 	logger.Log.Debug("Connection information",
-		"connection string", cfg.ConnString(),
 		"host", cfg.ConnConfig.Host,
 		"port", cfg.ConnConfig.Port,
 		"database", cfg.ConnConfig.Database,
 		"user", cfg.ConnConfig.User,
-		"password", cfg.ConnConfig.Password,
 	)
 }

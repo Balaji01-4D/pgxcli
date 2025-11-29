@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"pgcli/internals/logger"
 	"pgcli/internals/parser"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -39,14 +40,24 @@ func NewExecutor(host, database string, user string, password string,
 	port uint16, dsn string, ctx context.Context) (*Executor, error) {
 
 	if dsn == "" {
-		if host == "" {
-			host = "localhost"
+		var dsnParts []string
+		if host != "" {
+			dsnParts = append(dsnParts, fmt.Sprintf("host=%s", host))
 		}
-		if port == 0 {
-			port = 5432
+		if port != 0 {
+			dsnParts = append(dsnParts, fmt.Sprintf("port=%d", port))
 		}
-		dsn = fmt.Sprintf("host=%s port=%d user=%s dbname=%s password=%s", host, port, user, database, password)
-		logger.Log.Debug("Constructed DSN", "host", host, "port", port, "user", user, "database", database)
+		if user != "" {
+			dsnParts = append(dsnParts, fmt.Sprintf("user=%s", user))
+		}
+		if database != "" {
+			dsnParts = append(dsnParts, fmt.Sprintf("dbname=%s", database))
+		}
+		if password != "" {
+			dsnParts = append(dsnParts, fmt.Sprintf("password=%s", password))
+		}
+		dsn = strings.Join(dsnParts, " ")
+		logger.Log.Debug("Constructed DSN", "dsn", dsn)
 	}
 
 	// create a new connection pool

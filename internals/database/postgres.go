@@ -109,6 +109,31 @@ func (p *Postgres) GetConnectionInfo() {
 	)
 }
 
+func (p *Postgres) ChangeDatabase(dbName string) error {
+	if !p.IsConnected() {
+		return fmt.Errorf("not connected to any database")
+	}
+
+	exec, err := NewExecutor(
+		p.Executor.Host,
+		dbName,
+		p.Executor.User,
+		p.Executor.Password,
+		p.Executor.Port,
+		"",
+		p.ctx,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to create new executor: %w. Keeping the current database connection to %s", err, p.CurrentBD)
+	}
+	p.Executor = exec
+	p.CurrentBD = dbName
+	logger.Log.Info("Database changed", "database", dbName)
+
+	return nil
+}
+
 func (p *Postgres) RunCli() error {
 	if !p.IsConnected() {
 		return fmt.Errorf("not connected to any database")
@@ -121,6 +146,18 @@ func (p *Postgres) RunCli() error {
 		}
 		if strings.TrimSpace(query) == "exit" || strings.TrimSpace(query) == "quit" {
 			break
+		} else if p.IsChangeDBCommand(query) {
+			parts := strings.Fields(query)
+			if len(parts) < 2 {
+				fmt.Fprintln(os.Stderr, "Usage: USE <database_name> or \\c <database_name>")
+				continue
+			}
+			newDB := parts[1]
+			err := p.ChangeDatabase(newDB)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error changing database: %v\n", err)
+			}
+			continue
 		}
 
 		result, err := p.Executor.Execute(p.ctx, query)
@@ -134,6 +171,21 @@ func (p *Postgres) RunCli() error {
 
 	return nil
 }
+	
+func (p *Postgres) IsChangeDBCommand(sql string) bool {
+    sql = strings.TrimSpace(sql)
+    if sql == "" {
+        return false
+    }
+    first := strings.ToLower(strings.Fields(sql)[0])
+
+    switch first {
+    case "use", "\\c", "\\connect":
+        return true
+    }
+    return false
+}
+
 
 func HandleResult(result Result) {
 	switch res := result.(type) {

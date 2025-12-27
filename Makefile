@@ -7,7 +7,7 @@ BUILD_PATH = "bin"
 build:
 	@mkdir -p $(BUILD_PATH)
 	@/usr/bin/time -f "Time: %E" \
-		go build -o $(BUILD_PATH)/app $(MAIN_PATH)
+		@go build -o $(BUILD_PATH)/app $(MAIN_PATH)
 	@du -sh $(BUILD_PATH)
 
 run: build

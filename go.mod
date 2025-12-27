@@ -5,9 +5,12 @@ go 1.25.4
 require (
 	github.com/balaji01-4d/pgxspecial v0.2.0
 	github.com/elk-language/go-prompt v1.3.1
+	github.com/fatih/color v1.18.0
+	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/jedib0t/go-pretty/v6 v6.7.8
 	github.com/pganalyze/pg_query_go/v6 v6.1.0
 	github.com/spf13/cobra v1.10.2
+	golang.org/x/term v0.38.0
 )
 
 require (

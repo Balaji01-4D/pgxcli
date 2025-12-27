@@ -31,7 +31,7 @@ var rootCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 
 
-		logger.InitLogger(debug, "pgcli-go.log")
+		logger.InitLogger(debug, "logs/pgcli-go.log")
 		logger.Log.Info("pgcli started")
 
 		var argDB string   //  for storing positional DBNAME argument ex: pgcli mydb then argDB = "mydb"

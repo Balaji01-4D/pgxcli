@@ -141,13 +141,16 @@ func (p *Postgres) ChangeDatabase(dbName string) error {
 }
 
 func (p *Postgres) RunCli() error {
+	defer p.Executor.Close()
 	if !p.IsConnected() {
 		return fmt.Errorf("not connected to any database")
 	}
 	repl := repl.NewModel(p.CurrentBD)
+	defer repl.Close()
 
 	for {
 		query := repl.Read()
+
 
 		// check for empty string
 		if strings.TrimSpace(query) == "" {
@@ -155,6 +158,23 @@ func (p *Postgres) RunCli() error {
 		}
 
 		start := time.Now()
+
+		if strings.TrimSpace(query) == "exit" || strings.TrimSpace(query) == "quit" {
+			break
+		} else if p.IsChangeDBCommand(query) {
+			parts := strings.Fields(query)
+			if len(parts) < 2 {
+				repl.PrintError(fmt.Errorf("database name not provided"))
+				continue
+			}
+			newDB := parts[1]
+			err := p.ChangeDatabase(newDB)
+			if err != nil {
+				repl.PrintError(err)
+			}
+			continue
+		}
+
 		metaResult, okay, err := pgxspecial.ExecuteSpecialCommand(p.ctx, p.Executor.Pool, query)
 		if err != nil {
 			repl.PrintError(err)
@@ -180,21 +200,7 @@ func (p *Postgres) RunCli() error {
 			continue
 		}
 
-		if strings.TrimSpace(query) == "exit" || strings.TrimSpace(query) == "quit" {
-			break
-		} else if p.IsChangeDBCommand(query) {
-			parts := strings.Fields(query)
-			if len(parts) < 2 {
-				repl.PrintError(fmt.Errorf("database name not provided"))
-				continue
-			}
-			newDB := parts[1]
-			err := p.ChangeDatabase(newDB)
-			if err != nil {
-				repl.PrintError(err)
-			}
-			continue
-		}
+
 
 		result, err := p.Executor.Execute(p.ctx, query)
 		if err != nil {

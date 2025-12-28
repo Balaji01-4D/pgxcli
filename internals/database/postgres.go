@@ -13,10 +13,15 @@ import (
 	osUser "os/user"
 
 	"github.com/balaji01-4d/pgxspecial"
+	"github.com/balaji01-4d/pgxspecial/database"
 	_ "github.com/balaji01-4d/pgxspecial/dbcommands"
 	"github.com/jackc/pgx/v5"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
+)
+
+const (
+	Exit pgxspecial.SpecialResultKind = 100 + iota
 )
 
 type Postgres struct {
@@ -27,7 +32,22 @@ type Postgres struct {
 	ctx                 context.Context
 }
 
-func NewPostgres(neverPasswordPrompt, forcePasswordPrompt bool, ctx context.Context) *Postgres {
+type PostgresExit struct{}
+
+func (e PostgresExit) ResultKind() pgxspecial.SpecialResultKind {
+	return Exit
+}
+
+func New(neverPasswordPrompt, forcePasswordPrompt bool, ctx context.Context) *Postgres {
+	pgxspecial.RegisterCommand(pgxspecial.SpecialCommandRegistry{
+		Cmd:         "\\q",
+		Syntax:      "\\q",
+		Description: "Quit Pgxcli",
+		Handler: func(_ context.Context, _ database.Queryer, _ string, _ bool) (pgxspecial.SpecialCommandResult, error) {
+			return &PostgresExit{}, nil
+		},
+		CaseSensitive: true,
+	})
 	return &Postgres{
 		NeverPasswordPrompt: neverPasswordPrompt,
 		ForcePasswordPrompt: forcePasswordPrompt,
@@ -151,7 +171,6 @@ func (p *Postgres) RunCli() error {
 	for {
 		query := repl.Read()
 
-
 		// check for empty string
 		if strings.TrimSpace(query) == "" {
 			continue
@@ -159,9 +178,7 @@ func (p *Postgres) RunCli() error {
 
 		start := time.Now()
 
-		if strings.TrimSpace(query) == "exit" || strings.TrimSpace(query) == "quit" {
-			break
-		} else if p.IsChangeDBCommand(query) {
+		if p.IsChangeDBCommand(query) {
 			parts := strings.Fields(query)
 			if len(parts) < 2 {
 				repl.PrintError(fmt.Errorf("database name not provided"))
@@ -181,6 +198,11 @@ func (p *Postgres) RunCli() error {
 			continue
 		}
 		if okay {
+			// check for exit command
+			if metaResult.ResultKind() == Exit {
+				break
+			}
+
 			splCommandResults, err := HandleSpecialCommmand(metaResult)
 			if err != nil {
 				repl.PrintError(err)
@@ -199,8 +221,6 @@ func (p *Postgres) RunCli() error {
 			repl.PrintTime(execTime)
 			continue
 		}
-
-
 
 		result, err := p.Executor.Execute(p.ctx, query)
 		if err != nil {

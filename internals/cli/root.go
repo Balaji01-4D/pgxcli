@@ -18,7 +18,7 @@ var (
 	neverPrompt bool
 	usernameOpt string
 	dbnameOpt   string
-	debug 	 	bool
+	debug       bool
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -29,7 +29,6 @@ var rootCmd = &cobra.Command{
 
 	Args: cobra.MaximumNArgs(2), // allowing maximum 2 args: DBNAME and USERNAME
 	Run: func(cmd *cobra.Command, args []string) {
-
 
 		logger.InitLogger(debug, "logs/pgcli-go.log")
 		logger.Log.Info("pgcli started")
@@ -66,16 +65,16 @@ var rootCmd = &cobra.Command{
 				fmt.Fprintf(os.Stderr, "Error connecting to database: %v\n", err)
 				os.Exit(1)
 			}
-	} else {
-		logger.Log.Info("Connecting to database", "host", host, "port", port, "database", finalDB, "user", finalUser)
-		err := postgres.Connect(host, finalUser, "", finalDB, "", port)
-		if err != nil {
-			logger.Log.Error("Connection failed", "error", err, "host", host, "database", finalDB)
-			fmt.Fprintf(os.Stderr, "Error connecting to database: %v\n", err)
-			os.Exit(1)
+		} else {
+			logger.Log.Info("Connecting to database", "host", host, "port", port, "database", finalDB, "user", finalUser)
+			err := postgres.Connect(host, finalUser, "", finalDB, "", port)
+			if err != nil {
+				logger.Log.Error("Connection failed", "error", err, "host", host, "database", finalDB)
+				fmt.Fprintf(os.Stderr, "Error connecting to database: %v\n", err)
+				os.Exit(1)
+			}
 		}
-	}
-			if !postgres.IsConnected() {
+		if !postgres.IsConnected() {
 			fmt.Fprintf(os.Stderr, "Not connected to any database\n")
 			os.Exit(1)
 		}
@@ -110,7 +109,6 @@ func init() {
 
 	rootCmd.Flags().StringVarP(&dbnameOpt, "dbname", "d", "", "database name to connect to.")
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-
 
 	rootCmd.Flags().BoolVar(&debug, "debug", false, "Enable debug mode for verbose logging.")
 

@@ -169,8 +169,8 @@ func (p *Postgres) registerSpecialCommands() {
 	})
 
 	pgxspecial.RegisterCommand(pgxspecial.SpecialCommandRegistry{
-		Cmd: "\\conninfo",
-		Syntax: "\\conninfo",
+		Cmd:         "\\conninfo",
+		Syntax:      "\\conninfo",
 		Description: "Get connection details",
 		Handler: func(ctx context.Context, db database.Queryer, args string, verbose bool) (pgxspecial.SpecialCommandResult, error) {
 			return ActionGetConnInfo{}, nil
@@ -247,8 +247,8 @@ func (p *Postgres) RunCli() error {
 				continue
 			}
 			if metaResult.ResultKind() == conninfo {
-			
-				host := p.Executor.Pool.Config().ConnConfig.Host 
+
+				host := p.Executor.Pool.Config().ConnConfig.Host
 				if strings.HasPrefix(p.Executor.Host, "/") {
 					host = fmt.Sprintf("Socket %q", p.Executor.Host)
 				} else {
@@ -256,7 +256,7 @@ func (p *Postgres) RunCli() error {
 				}
 				repl.Print(
 					fmt.Sprintf("You are connected to database %q as user %q on %s on port %d",
-					 p.CurrentBD, p.Executor.User, host, p.Executor.Port,
+						p.CurrentBD, p.Executor.User, host, p.Executor.Port,
 					),
 				)
 				continue
@@ -287,23 +287,28 @@ func (p *Postgres) RunCli() error {
 			repl.PrintError(err)
 			continue
 		}
-		// TODO: Print using REPL
-		HandleResult(result)
+
+		execTime := time.Since(start)
+		HandleResult(result, repl, execTime)
+		continue
 	}
 
 	return nil
 }
 
-func HandleResult(result Result) {
+func HandleResult(result Result, repl *repl.Repl, execTime time.Duration) {
 	switch res := result.(type) {
 	case *QueryResult:
 		tw, err := res.Render()
 		if err != nil {
-			fmt.Println(err.Error())
+			repl.PrintError(err)
+			return
 		}
-		fmt.Println(tw.Render())
+		repl.Print(tw.Render())
+		repl.PrintTime(execTime)
 	case *ExecResult:
-		fmt.Println(res.Render())
+		repl.Print(res.Render())
+		repl.PrintTime(execTime)
 	}
 }
 

@@ -12,8 +12,9 @@ import (
 )
 
 type Repl struct {
-	db string
-	history []string
+	db                 string
+	history            []string
+	historyLoadedCount int
 }
 
 func NewModel(db string) *Repl {
@@ -23,7 +24,6 @@ func NewModel(db string) *Repl {
 	repl.loadHistory()
 	return repl
 }
-
 
 func (r *Repl) Read() string {
 	text := prompt.Input(
@@ -55,21 +55,29 @@ func (r *Repl) loadHistory() {
 	history, err := loadHistoryFromFile(historyFilePath)
 	if err != nil {
 		r.history = []string{}
+		r.historyLoadedCount = 0
 		return
 	}
 	r.history = history
+	r.historyLoadedCount = len(history)
 }
 
 func (r *Repl) saveHistory() {
 	historyFilePath := getHistoryFilePath()
-	
+
+	// Only save new commands added during this session
+	newCommands := r.history[r.historyLoadedCount:]
+	if len(newCommands) == 0 {
+		return
+	}
+
 	f, err := os.OpenFile(historyFilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return
 	}
 	defer f.Close()
-	
-	f.WriteString(strings.Join(r.history, "\n"))
+
+	f.WriteString(strings.Join(newCommands, "\n") + "\n")
 }
 
 func (r *Repl) addToHistory(command string) {
@@ -89,7 +97,7 @@ func (r *Repl) getPromptOptions() []prompt.Option {
 		prompt.WithPrefix(r.getPrefix()),
 		prompt.WithHistory(r.history),
 		prompt.WithTitle("pgxcli"),
-		prompt.WithHistorySize(100), 
+		prompt.WithHistorySize(100),
 	}
 }
 
@@ -99,7 +107,7 @@ func getHistoryFilePath() string {
 		return ""
 	}
 	return homeDir + string(os.PathSeparator) + ".pgxcli_history"
-}	
+}
 
 func loadHistoryFromFile(filePath string) ([]string, error) {
 	f, err := os.Open(filePath)
@@ -108,11 +116,17 @@ func loadHistoryFromFile(filePath string) ([]string, error) {
 	}
 	defer f.Close()
 
+	const maxHistoryLines = 1000
 	var history []string
 
 	scanner := bufio.NewScanner(f)
+	// Use a circular buffer approach: keep only last N lines
 	for scanner.Scan() {
 		history = append(history, scanner.Text())
+		if len(history) > maxHistoryLines {
+			// Remove oldest entry to keep memory bounded
+			history = history[1:]
+		}
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, err

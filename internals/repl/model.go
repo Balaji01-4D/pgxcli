@@ -17,15 +17,12 @@ var (
 )
 
 type Repl struct {
-	db                 string
 	history            []string
 	historyLoadedCount int
 }
 
-func NewModel(db string) *Repl {
-	repl := &Repl{
-		db: db,
-	}
+func NewModel() *Repl {
+	repl := &Repl{}
 	repl.loadHistory()
 	return repl
 }

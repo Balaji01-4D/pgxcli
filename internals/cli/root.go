@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"os"
+	"pgcli/internals/config"
 	"pgcli/internals/database"
 	"pgcli/internals/logger"
 	"strings"
@@ -22,7 +23,7 @@ var (
 )
 
 var (
-	printErr = color.New(color.FgHiRed).FprintfFunc()
+	printErr  = color.New(color.FgHiRed).FprintfFunc()
 	printTime = color.New(color.FgHiCyan).FprintfFunc()
 )
 
@@ -52,10 +53,31 @@ var rootCmd = &cobra.Command{
 		finalDB, finalUser := resolveDBAndUser(dbnameOpt, usernameOpt, argDB, argUser)
 		// currently we dont use the user
 
-		// currently supporting only DSN connection string example pgcli postgres://user:pass@localhost:5432/mydb
-		ctx := context.Background()
-		postgres := database.New(neverPrompt, forcePrompt, ctx)
+		cfg := config.DefaultConfig
 
+		configDir, err := config.GetConfigDir()
+		if err != nil {
+			logger.Log.Error("Failed to get config directory", "error", err)
+		} else {
+			configPath, okay := config.CheckConfigExists(configDir)
+			if !okay {
+				logger.Log.Info("Config file does not exist, creating default config", "path", configPath)
+				if err := config.SaveConfig(configPath, config.DefaultConfig); err != nil {
+					logger.Log.Error("Failed to create default config file", "error", err)
+				}
+			} else {
+				loadedConfig, err := config.LoadConfig(configPath)
+				if err != nil {
+					logger.Log.Error("Failed to load config file, using default config", "error", err)
+				} else {
+					cfg = loadedConfig
+				}
+			}
+		}
+
+		ctx := context.Background()
+
+		postgres := database.New(neverPrompt, forcePrompt, ctx, cfg)
 		defer postgres.Close()
 
 		if strings.Contains(finalDB, "://") {

@@ -10,11 +10,11 @@ import (
 const filename = "config.toml"
 
 type Config struct {
-	prompt string `toml:"prompt"`
+	Prompt string `toml:"prompt"`
 }
 
 var DefaultConfig = Config{
-	prompt: `\u@\h:\d> `,
+	Prompt: `\u@\h:\d> `,
 }
 
 func GetConfigDir() (string, error) {
@@ -31,9 +31,13 @@ func LoadConfig(path string) (config Config, err error) {
 	return cfg, err
 }
 
-func CheckConfigExists(path string) bool {
+func CheckConfigExists(configDir string) (string, bool){
+	path := filepath.Join(configDir, filename)
 	_, err := os.Stat(path)
-	return !os.IsNotExist(err)
+	if os.IsNotExist(err) {
+		return path, false
+	}
+	return path, true
 }
 
 func SaveConfig(path string, cfg Config) error {

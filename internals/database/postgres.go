@@ -39,14 +39,18 @@ type Postgres struct {
 	NeverPasswordPrompt bool
 	ctx                 context.Context
 	Config              config.Config
+
+	now					time.Time
 }
 
-func New(neverPasswordPrompt, forcePasswordPrompt bool, ctx context.Context) *Postgres {
+func New(neverPasswordPrompt, forcePasswordPrompt bool, ctx context.Context, cfg config.Config) *Postgres {
 
 	postgres := &Postgres{
 		NeverPasswordPrompt: neverPasswordPrompt,
 		ForcePasswordPrompt: forcePasswordPrompt,
 		ctx:                 ctx,
+		Config:              cfg,
+		now: time.Now(),
 	}
 	postgres.registerSpecialCommands()
 
@@ -216,11 +220,11 @@ func (p *Postgres) RunCli() error {
 	if !p.IsConnected() {
 		return fmt.Errorf("not connected to any database")
 	}
-	repl := repl.NewModel(p.CurrentBD)
+	repl := repl.NewModel()
 	defer repl.Close()
 
 	for {
-		query := repl.Read(p.CurrentBD)
+		query := repl.Read(p.getPrompt())
 
 		// check for empty string
 		if strings.TrimSpace(query) == "" {
@@ -298,8 +302,43 @@ func (p *Postgres) RunCli() error {
 		HandleQueryResult(result, repl, execTime)
 		continue
 	}
-
 	return nil
+}
+
+func (p *Postgres) getPrompt() string {
+	str := p.Config.Prompt
+
+	str = strings.ReplaceAll(str, "\\t", p.now.Format("02/06/2006 15:04:05"))
+	if p.Executor.User != "" {
+		str = strings.ReplaceAll(str, "\\u", p.Executor.User)
+	} else {
+		str = strings.ReplaceAll(str, "\\u", "(nil)")
+	}
+
+	if p.Executor.Host != "" {
+		str = strings.ReplaceAll(str, "\\H", p.Executor.Host)
+		str = strings.ReplaceAll(str, "\\h", func() string {
+			return strings.Split(p.Executor.Host, ".")[0]
+		}())
+	} else {
+		str = strings.ReplaceAll(str, "\\H", "(nil)")
+		str = strings.ReplaceAll(str, "\\h", "(nil)")
+	}
+
+	if p.CurrentBD != "" {
+		str = strings.ReplaceAll(str, "\\d", p.CurrentBD)
+	} else {
+		str = strings.ReplaceAll(str, "\\d", "(nil)")
+	}
+	if p.Executor.Port != 0 {
+		str = strings.ReplaceAll(str, "\\p", fmt.Sprintf("%d", p.Executor.Port))
+	} else {
+		str = strings.ReplaceAll(str, "\\p", "5432")
+	}
+	
+	str = strings.ReplaceAll(str, "\\n", "\n" )
+
+	return str
 }
 
 func HandleQueryResult(result Result, repl *repl.Repl, execTime time.Duration) {

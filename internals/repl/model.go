@@ -6,9 +6,14 @@ import (
 	"os"
 	"strings"
 	"time"
-
+	
 	"github.com/elk-language/go-prompt"
 	"github.com/fatih/color"
+)
+
+var (
+	printErr = color.New(color.FgHiRed).FprintfFunc()
+	printTime = color.New(color.FgHiCyan).FprintfFunc()
 )
 
 type Repl struct {
@@ -34,13 +39,11 @@ func (r *Repl) Read() string {
 }
 
 func (r *Repl) PrintError(err error) {
-	c := color.New(color.FgRed)
-	c.Fprintf(os.Stderr, "%v\n", err)
+	printErr(os.Stderr, "%v\n", err)
 }
 
 func (r *Repl) PrintTime(time time.Duration) {
-	c := color.New(color.FgCyan)
-	c.Fprintf(os.Stderr, "Time: %.3fs\n", time.Seconds())
+	printTime(os.Stderr, "Time: %.3fs\n", time.Seconds())
 }
 
 func (r *Repl) Print(output string) {

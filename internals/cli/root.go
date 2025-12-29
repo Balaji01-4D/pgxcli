@@ -2,12 +2,12 @@ package cli
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"pgcli/internals/database"
 	"pgcli/internals/logger"
 	"strings"
 
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
@@ -19,6 +19,11 @@ var (
 	usernameOpt string
 	dbnameOpt   string
 	debug       bool
+)
+
+var (
+	printErr = color.New(color.FgHiRed).FprintfFunc()
+	printTime = color.New(color.FgHiCyan).FprintfFunc()
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -56,13 +61,13 @@ var rootCmd = &cobra.Command{
 		if strings.Contains(finalDB, "://") {
 			err := postgres.ConnectURI(finalDB)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error connecting to database: %v\n", err)
+				printErr(os.Stderr, "%v\n", err)
 				os.Exit(1)
 			}
 		} else if strings.Contains(finalDB, "=") {
 			err := postgres.ConnectDSN(finalDB)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error connecting to database: %v\n", err)
+				printErr(os.Stderr, "%v\n", err)
 				os.Exit(1)
 			}
 		} else {
@@ -70,12 +75,12 @@ var rootCmd = &cobra.Command{
 			err := postgres.Connect(host, finalUser, "", finalDB, "", port)
 			if err != nil {
 				logger.Log.Error("Connection failed", "error", err, "host", host, "database", finalDB)
-				fmt.Fprintf(os.Stderr, "Error connecting to database: %v\n", err)
+				printErr(os.Stderr, "%v\n", err)
 				os.Exit(1)
 			}
 		}
 		if !postgres.IsConnected() {
-			fmt.Fprintf(os.Stderr, "Not connected to any database\n")
+			printErr(os.Stderr, "Not connected to any database\n")
 			os.Exit(1)
 		}
 		postgres.RunCli()

@@ -41,6 +41,18 @@ type Postgres struct {
 	Config			    config.Config
 }
 
+func New(neverPasswordPrompt, forcePasswordPrompt bool, ctx context.Context) *Postgres {
+
+	postgres := &Postgres{
+		NeverPasswordPrompt: neverPasswordPrompt,
+		ForcePasswordPrompt: forcePasswordPrompt,
+		ctx:                 ctx,
+	}
+	postgres.registerSpecialCommands()
+
+	return postgres
+}
+
 type ActionExit struct{}
 
 func (e ActionExit) ResultKind() pgxspecial.SpecialResultKind {
@@ -61,17 +73,6 @@ func (g ActionGetConnInfo) ResultKind() pgxspecial.SpecialResultKind {
 	return conninfo
 }
 
-func New(neverPasswordPrompt, forcePasswordPrompt bool, ctx context.Context) *Postgres {
-
-	postgres := &Postgres{
-		NeverPasswordPrompt: neverPasswordPrompt,
-		ForcePasswordPrompt: forcePasswordPrompt,
-		ctx:                 ctx,
-	}
-	postgres.registerSpecialCommands()
-
-	return postgres
-}
 
 func (p *Postgres) Connect(host, user, password, database, dsn string, port uint16) error {
 
@@ -134,7 +135,7 @@ func (p *Postgres) ConnectURI(uri string) error {
 
 func (p *Postgres) Close() {
 	if p.Executor != nil {
-		p.Executor.Close()
+		p.Executor.Close(p.ctx)
 	}
 }
 
@@ -213,7 +214,6 @@ func (p *Postgres) ChangeDatabase(dbName string) error {
 }
 
 func (p *Postgres) RunCli() error {
-	defer p.Executor.Close()
 	if !p.IsConnected() {
 		return fmt.Errorf("not connected to any database")
 	}

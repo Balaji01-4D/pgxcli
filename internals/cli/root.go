@@ -84,6 +84,7 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		postgres.RunCli()
+		postgres.Close()
 	},
 }
 

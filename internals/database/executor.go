@@ -11,14 +11,6 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// skip these two interfaces for now
-type Tx interface {
-	Query(ctx context.Context, sql string, args ...interface{}) (*QueryResult, error)
-	Exec(ctx context.Context, sql string, args ...interface{}) (*ExecResult, error)
-	Commit(ctx context.Context) error
-	Rollback(ctx context.Context) error
-}
-
 type Result interface {
 	GetType() string
 }

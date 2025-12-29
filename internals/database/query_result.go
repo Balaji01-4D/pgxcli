@@ -89,8 +89,5 @@ func (r *QueryResult) Render() (table.Writer, error) {
 		copy(row, values)
 		tw.AppendRow(row)
 	}
-
-	tw.SetCaption("Time: %v", r.duration)
 	return tw, nil
-	
 }

@@ -1,4 +1,4 @@
-module pgcli
+module pgxcli
 
 go 1.25.4
 

@@ -1,4 +1,4 @@
-MAIN_PATH = "cmd/pgcli/main.go"
+MAIN_PATH = "cmd/pgxcli/main.go"
 BUILD_PATH = "bin"
 
 .PHONY: build clean run update runc
@@ -20,4 +20,3 @@ clean:
 
 update:
 	@go get -u ./...
-

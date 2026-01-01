@@ -27,6 +27,29 @@ type Executor struct {
 	Conn     *pgx.Conn
 }
 
+func NewExec(ctx context.Context, c Connector) (*Executor, error) {
+	conn, err := c.Connect(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	err = conn.Ping(ctx)
+	if err != nil {
+		logger.Log.Error("Connection ping failed", "error", err)
+		return nil, err
+	}
+
+	return &Executor{
+		Host:     conn.Config().Host,
+		Port:     conn.Config().Port,
+		Database: conn.Config().Database,
+		User:     conn.Config().User,
+		Password: conn.Config().Password,
+		URI:      conn.Config().ConnString(),
+		Conn:     conn,
+	}, nil
+}
+
 // constructor function to create new executor
 func NewExecutor(host, database string, user string, password string,
 	port uint16, dsn string, ctx context.Context) (*Executor, error) {

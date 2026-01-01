@@ -1,4 +1,4 @@
-# pgcli
+# pgxcli
 
 
 Excellent, that's a great start. The structure you have is clean and follows the standard Go project layout convention of separating commands from internal library code.
@@ -8,14 +8,14 @@ Based on the features we discussed (`cobra`, `pgx`, `go-prompt`, `chroma`), I wo
 Here is a recommended directory structure that builds on what you already have:
 
 ```
-pgcli/
+pgxcli/
 ├── cmd/
-│   └── pgcli/
+│   └── pgxcli/
 │       └── main.go         # Entry point of your application
 │
 ├── internal/
 │   ├── cli/                # Cobra command definitions
-│   │   ├── root.go         # Defines the root command (pgcli)
+│   │   ├── root.go         # Defines the root command (pgxcli)
 │   │   └── version.go      # A simple 'version' subcommand
 │   │
 │   ├── config/             # For loading/saving connection configs
@@ -41,13 +41,13 @@ pgcli/
 
 ### Explanation of the Changes and Additions:
 
-1.  **`cmd/pgcli/main.go`**: The entry point is moved into its own subdirectory. This is a common pattern for projects that might have multiple commands in the future (e.g., `pgcli` and `pgcl-server`). For now, it keeps things tidy. `main.go` will be very simple, just calling into the `cli` package.
+1.  **`cmd/pgxcli/main.go`**: The entry point is moved into its own subdirectory. This is a common pattern for projects that might have multiple commands in the future (e.g., `pgxcli` and `pgcl-server`). For now, it keeps things tidy. `main.go` will be very simple, just calling into the `cli` package.
 
 2.  **`internal/cli/`**: This is the new home for your `cobra` command definitions.
-    *   `root.go`: Will define the main `pgcli` command, its flags (like `--host`, `--user`), and what happens when it's run (it will start the REPL).
+    *   `root.go`: Will define the main `pgxcli` command, its flags (like `--host`, `--user`), and what happens when it's run (it will start the REPL).
     *   You can add other command files here later, like `version.go`.
 
-3.  **`internal/config/`**: `pgcli` stores connection history. This package would be responsible for reading and writing configuration files (e.g., `~/.config/pgcli/config`).
+3.  **`internal/config/`**: `pgxcli` stores connection history. This package would be responsible for reading and writing configuration files (e.g., `~/.config/pgxcli/config`).
 
 4.  **`internal/database/`**: You had `internals/pg`, which is great. Renaming it to `database` makes it a little more generic. It acts as a wrapper around `pgx` and provides your application with a clean API for all database operations.
 

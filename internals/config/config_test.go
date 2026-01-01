@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-
 func TestLoadConfig_ValidConfig(t *testing.T) {
 	tempDir := t.TempDir()
 	configPath := path.Join(tempDir, "config.toml")
@@ -47,12 +46,10 @@ func TestSaveConfig(t *testing.T) {
 	cfg := config.Config{
 		Prompt: "\\u@\\h:\\d> ",
 	}
-	
+
 	err := config.SaveConfig(configPath, cfg)
 	assert.NoError(t, err)
 	loadedCfg, err := config.LoadConfig(configPath)
 	assert.NoError(t, err)
 	assert.Equal(t, cfg.Prompt, loadedCfg.Prompt)
 }
-
-

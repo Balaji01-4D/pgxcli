@@ -31,7 +31,7 @@ func LoadConfig(path string) (config Config, err error) {
 	return cfg, err
 }
 
-func CheckConfigExists(configDir string) (string, bool){
+func CheckConfigExists(configDir string) (string, bool) {
 	path := filepath.Join(configDir, filename)
 	_, err := os.Stat(path)
 	if os.IsNotExist(err) {

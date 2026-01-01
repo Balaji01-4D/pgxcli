@@ -51,7 +51,6 @@ var rootCmd = &cobra.Command{
 
 		// when pgcli -d mydb myuser, here database name is given as flag then next arguement is considered as user
 		finalDB, finalUser := resolveDBAndUser(dbnameOpt, usernameOpt, argDB, argUser)
-		// currently we dont use the user
 
 		cfg := config.DefaultConfig
 

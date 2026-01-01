@@ -31,7 +31,7 @@ func LoadConfig(path string) (config Config, err error) {
 	return cfg, err
 }
 
-func CheckConfigExists(configDir string) (string, bool){
+func CheckConfigExists(configDir string) (string, bool) {
 	path := filepath.Join(configDir, filename)
 	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
@@ -41,10 +41,7 @@ func CheckConfigExists(configDir string) (string, bool){
 }
 
 func SaveConfig(path string, cfg Config) error {
-	dir, err := GetConfigDir()
-	if err != nil {
-		return err
-	}
+	dir := filepath.Dir(path)
 	os.MkdirAll(dir, os.ModePerm)
 	f, err := os.Create(filepath.Join(dir, filename))
 	if err != nil {

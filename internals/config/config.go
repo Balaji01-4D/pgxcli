@@ -41,10 +41,7 @@ func CheckConfigExists(configDir string) (string, bool){
 }
 
 func SaveConfig(path string, cfg Config) error {
-	dir, err := GetConfigDir()
-	if err != nil {
-		return err
-	}
+	dir := filepath.Dir(path)
 	os.MkdirAll(dir, os.ModePerm)
 	f, err := os.Create(filepath.Join(dir, filename))
 	if err != nil {

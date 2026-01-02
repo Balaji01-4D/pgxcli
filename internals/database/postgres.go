@@ -221,7 +221,7 @@ func (p *Postgres) RunCli() error {
 	if !p.IsConnected() {
 		return fmt.Errorf("not connected to any database")
 	}
-	repl := repl.NewModel()
+	repl := repl.New()
 	defer repl.Close()
 
 	for {

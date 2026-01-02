@@ -6,13 +6,13 @@ import (
 	"os"
 	"strings"
 	"time"
-	
+
 	"github.com/elk-language/go-prompt"
 	"github.com/fatih/color"
 )
 
 var (
-	printErr = color.New(color.FgHiRed).FprintfFunc()
+	printErr  = color.New(color.FgHiRed).FprintfFunc()
 	printTime = color.New(color.FgHiCyan).FprintfFunc()
 )
 
@@ -21,7 +21,7 @@ type Repl struct {
 	historyLoadedCount int
 }
 
-func NewModel() *Repl {
+func New() *Repl {
 	repl := &Repl{}
 	repl.loadHistory()
 	return repl

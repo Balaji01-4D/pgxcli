@@ -15,8 +15,6 @@ import (
 	osUser "os/user"
 
 	"github.com/balaji01-4d/pgxspecial"
-	"github.com/balaji01-4d/pgxspecial/database"
-	_ "github.com/balaji01-4d/pgxspecial/dbcommands"
 	"github.com/jackc/pgx/v5"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
@@ -27,11 +25,7 @@ const (
 	MaxLenPrompt  = 30
 )
 
-const (
-	Exit pgxspecial.SpecialResultKind = 100 + iota
-	ChangeDB
-	conninfo
-)
+
 
 type Postgres struct {
 	CurrentBD           string
@@ -53,30 +47,10 @@ func New(neverPasswordPrompt, forcePasswordPrompt bool, ctx context.Context, cfg
 		Config:              cfg,
 		now: time.Now(),
 	}
-	postgres.registerSpecialCommands()
-
 	return postgres
 }
 
-type ActionExit struct{}
 
-func (e ActionExit) ResultKind() pgxspecial.SpecialResultKind {
-	return Exit
-}
-
-type ActionChangeDB struct {
-	dbName string
-}
-
-func (c ActionChangeDB) ResultKind() pgxspecial.SpecialResultKind {
-	return ChangeDB
-}
-
-type ActionGetConnInfo struct{}
-
-func (g ActionGetConnInfo) ResultKind() pgxspecial.SpecialResultKind {
-	return conninfo
-}
 
 func (p *Postgres) Connect(host, user, password, database, dsn string, port uint16) error {
 
@@ -158,39 +132,6 @@ func (p *Postgres) GetConnectionInfo() {
 	)
 }
 
-func (p *Postgres) registerSpecialCommands() {
-	pgxspecial.RegisterCommand(pgxspecial.SpecialCommandRegistry{
-		Cmd:         "\\q",
-		Syntax:      "\\q",
-		Description: "Quit Pgxcli",
-		Handler: func(_ context.Context, _ database.Queryer, _ string, _ bool) (pgxspecial.SpecialCommandResult, error) {
-			return ActionExit{}, nil
-		},
-		CaseSensitive: true,
-	})
-
-	pgxspecial.RegisterCommand(pgxspecial.SpecialCommandRegistry{
-		Cmd:         "\\c",
-		Syntax:      "\\c database_name",
-		Description: "Change a new database",
-		Handler: func(_ context.Context, _ database.Queryer, s string, _ bool) (pgxspecial.SpecialCommandResult, error) {
-			return ActionChangeDB{dbName: s}, nil
-		},
-		CaseSensitive: true,
-		Alias:         []string{"\\connect"},
-	})
-
-	pgxspecial.RegisterCommand(pgxspecial.SpecialCommandRegistry{
-		Cmd:         "\\conninfo",
-		Syntax:      "\\conninfo",
-		Description: "Get connection details",
-		Handler: func(ctx context.Context, db database.Queryer, args string, verbose bool) (pgxspecial.SpecialCommandResult, error) {
-			return ActionGetConnInfo{}, nil
-		},
-		CaseSensitive: false,
-	})
-
-}
 
 func (p *Postgres) ChangeDatabase(dbName string) error {
 	if !p.IsConnected() {
@@ -245,7 +186,7 @@ func (p *Postgres) RunCli() error {
 				break
 			}
 			if metaResult.ResultKind() == ChangeDB {
-				s := metaResult.(ActionChangeDB).dbName
+				s := metaResult.(ChangeDbAction).dbName
 				if strings.TrimSpace(s) != "" {
 					err := p.ChangeDatabase(s)
 					if err != nil {

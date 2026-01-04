@@ -1,10 +1,8 @@
 package repl
 
 import (
-	"bufio"
 	"io"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/elk-language/go-prompt"
@@ -17,13 +15,12 @@ var (
 )
 
 type Repl struct {
-	history            []string
-	historyLoadedCount int
+	history *history
 }
 
 func New() *Repl {
 	repl := &Repl{}
-	repl.loadHistory()
+	repl.history = newHistory(1000, "")
 	return repl
 }
 
@@ -31,7 +28,7 @@ func (r *Repl) Read(prefix string) string {
 	text := prompt.Input(
 		r.getPromptOptions(prefix)...,
 	)
-	r.addToHistory(text)
+	r.history.append(text)
 	return text
 }
 
@@ -50,82 +47,15 @@ func (r *Repl) Print(output string) {
 	})
 }
 
-func (r *Repl) loadHistory() {
-	historyFilePath := getHistoryFilePath()
-	history, err := loadHistoryFromFile(historyFilePath)
-	if err != nil {
-		r.history = []string{}
-		r.historyLoadedCount = 0
-		return
-	}
-	r.history = history
-	r.historyLoadedCount = len(history)
-}
-
-func (r *Repl) saveHistory() {
-	historyFilePath := getHistoryFilePath()
-
-	// Only save new commands added during this session
-	newCommands := r.history[r.historyLoadedCount:]
-	if len(newCommands) == 0 {
-		return
-	}
-
-	f, err := os.OpenFile(historyFilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		return
-	}
-	defer f.Close()
-
-	f.WriteString(strings.Join(newCommands, "\n") + "\n")
-}
-
-func (r *Repl) addToHistory(command string) {
-	r.history = append(r.history, command)
-}
-
-func (r *Repl) Close() {
-	r.saveHistory()
-}
-
 func (r *Repl) getPromptOptions(prefix string) []prompt.Option {
 	return []prompt.Option{
 		prompt.WithPrefix(prefix),
-		prompt.WithHistory(r.history),
+		prompt.WithHistory(r.history.entries),
 		prompt.WithTitle("pgxcli"),
 		prompt.WithHistorySize(100),
 	}
 }
 
-func getHistoryFilePath() string {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return ""
-	}
-	return homeDir + string(os.PathSeparator) + ".pgxcli_history"
-}
-
-func loadHistoryFromFile(filePath string) ([]string, error) {
-	f, err := os.Open(filePath)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	const maxHistoryLines = 1000
-	var history []string
-
-	scanner := bufio.NewScanner(f)
-	// Use a circular buffer approach: keep only last N lines
-	for scanner.Scan() {
-		history = append(history, scanner.Text())
-		if len(history) > maxHistoryLines {
-			// Remove oldest entry to keep memory bounded
-			history = history[1:]
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, err
-	}
-	return history, nil
+func (r *Repl) Close() {
+	r.history.saveHistory()
 }

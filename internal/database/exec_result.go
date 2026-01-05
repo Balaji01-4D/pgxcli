@@ -13,9 +13,7 @@ type ExecResult struct {
 	Duration     time.Duration
 }
 
-func (e *ExecResult) GetType() string {
-	return "EXEC"
-}
+func (e *ExecResult) isResult() {}
 
 func (e *ExecResult) Render() string {
 	return fmt.Sprintf(

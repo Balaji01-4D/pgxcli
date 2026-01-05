@@ -5,17 +5,20 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/balaji01-4d/pgxcli/internal/config"
 )
+
+const maxHistoryLines = 1000
 
 type history struct {
 	entries   []string
 	loadCount int
-	maxSize   int
 }
 
-func newHistory(histSize int, historyPath string) *history {
-	h := &history{maxSize: histSize}
-	if historyPath == "" {
+func newHistory(historyPath string) *history {
+	h := &history{}
+	if historyPath == "" || historyPath == config.Default {
 		h.loadHistory(getHistoryFilePath())
 	} else {
 		h.loadHistory(historyPath)
@@ -24,7 +27,7 @@ func newHistory(histSize int, historyPath string) *history {
 }
 
 func (h *history) loadHistory(path string) {
-	history, err := loadHistoryFromFile(path, h.maxSize)
+	history, err := loadHistoryFromFile(path, maxHistoryLines)
 	if err != nil {
 		h.entries = []string{}
 		h.loadCount = 0

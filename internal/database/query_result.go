@@ -14,6 +14,8 @@ type QueryResult struct {
 	rowStreamer
 }
 
+func (r *QueryResult) isResult() {}
+
 type rowStreamer struct {
 	rows     pgx.Rows
 	columns  []string
@@ -61,10 +63,6 @@ func (r *rowStreamer) Close() error {
 
 func (r *rowStreamer) Duration() time.Duration {
 	return r.duration
-}
-
-func (r *rowStreamer) GetType() string {
-	return "QUERY"
 }
 
 func (r *QueryResult) Render() (table.Writer, error) {

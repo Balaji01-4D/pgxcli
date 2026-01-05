@@ -13,7 +13,7 @@ import (
 )
 
 type Result interface {
-	GetType() string
+	isResult()
 }
 
 // executor struct to execute queries

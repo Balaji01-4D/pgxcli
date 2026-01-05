@@ -7,14 +7,25 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
-const filename = "config.toml"
+const (
+	Default  = "default"
+	filename = "config.toml"
+)
 
 type Config struct {
-	Prompt string `toml:"prompt"`
+	Main main `toml:"main"`
+}
+
+type main struct {
+	Prompt      string `toml:"prompt"`
+	HistoryFile string `toml:"history_file"`
 }
 
 var DefaultConfig = Config{
-	Prompt: `\u@\h:\d> `,
+	Main: main{
+		Prompt:      `\u@\h:\d> `,
+		HistoryFile: "default",
+	},
 }
 
 func GetConfigDir() (string, error) {

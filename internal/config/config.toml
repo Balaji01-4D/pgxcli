@@ -1,3 +1,4 @@
+[main]
 # Postgres prompt
 # \t - Current date and time
 # \u - Username
@@ -7,3 +8,7 @@
 # \p - Database port
 # \n - Newline
 prompt = '\u@\h:\d> '
+
+
+# history
+history_file = default

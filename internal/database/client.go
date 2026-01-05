@@ -4,20 +4,15 @@ import (
 	"context"
 	"fmt"
 	"os"
+	osUser "os/user"
 	"strings"
 	"time"
 
 	"github.com/balaji01-4d/pgxcli/internal/config"
 	"github.com/balaji01-4d/pgxcli/internal/logger"
-
-	osUser "os/user"
+	"github.com/balaji01-4d/pgxspecial"
 
 	"github.com/jackc/pgx/v5"
-)
-
-const (
-	DefaultPrompt = `\u@\h:\d> `
-	MaxLenPrompt  = 30
 )
 
 type Client struct {
@@ -25,8 +20,6 @@ type Client struct {
 	Executor            *Executor
 	ForcePasswordPrompt bool
 	NeverPasswordPrompt bool
-	ctx                 context.Context
-	Config              config.Config
 
 	now time.Time
 }
@@ -35,14 +28,12 @@ func New(neverPasswordPrompt, forcePasswordPrompt bool, ctx context.Context, cfg
 	postgres := &Client{
 		NeverPasswordPrompt: neverPasswordPrompt,
 		ForcePasswordPrompt: forcePasswordPrompt,
-		ctx:                 ctx,
-		Config:              cfg,
 		now:                 time.Now(),
 	}
 	return postgres
 }
 
-func (p *Client) Connect(host, user, password, database, dsn string, port uint16) error {
+func (c *Client) Connect(ctx context.Context, host, user, password, database, dsn string, port uint16) error {
 	if user == "" {
 		currentUser, err := osUser.Current()
 		if err != nil {
@@ -55,11 +46,11 @@ func (p *Client) Connect(host, user, password, database, dsn string, port uint16
 		database = user
 	}
 
-	if p.NeverPasswordPrompt && password == "" {
+	if c.NeverPasswordPrompt && password == "" {
 		password = os.Getenv("PGPASSWORD")
 	}
 
-	if p.ForcePasswordPrompt && password == "" {
+	if c.ForcePasswordPrompt && password == "" {
 		fmt.Print("Password: ")
 		var pwd string
 		fmt.Scanln(&pwd)
@@ -76,70 +67,129 @@ func (p *Client) Connect(host, user, password, database, dsn string, port uint16
 		port = parsedDsn.Port
 	}
 
-	exec, err := NewExecutor(host, database, user, password, port, dsn, p.ctx)
+	exec, err := NewExecutor(host, database, user, password, port, dsn, ctx)
 	if err != nil {
 		return err
 	}
-	p.Executor = exec
-	p.CurrentDB = database
+	c.Executor = exec
+	c.CurrentDB = database
 	logger.Log.Info("Database connection established", "database", database, "user", user)
 
 	return nil
 }
 
-func (p *Client) ConnectDSN(dsn string) error {
-	return p.Connect("", "", "", "", dsn, 0)
+func (c *Client) ConnectDSN(ctx context.Context, dsn string) error {
+	return c.Connect(ctx, "", "", "", "", dsn, 0)
 }
 
-func (p *Client) ConnectURI(uri string) error {
+func (c *Client) ConnectURI(ctx context.Context, uri string) error {
 	parsedURI, err := pgx.ParseConfig(uri)
 	if err != nil {
 		return fmt.Errorf("failed to parse URI: %w", err)
 	}
-	return p.Connect(parsedURI.Host, parsedURI.User, parsedURI.Password, parsedURI.Database, "", parsedURI.Port)
+	return c.Connect(ctx, parsedURI.Host, parsedURI.User, parsedURI.Password, parsedURI.Database, "", parsedURI.Port)
 }
 
-func (p *Client) Close() {
-	if p.Executor != nil {
-		p.Executor.Close(p.ctx)
-	}
+func (c *Client) ExecuteSpecial(ctx context.Context,
+	command string) (pgxspecial.SpecialCommandResult, bool, error) {
+	return pgxspecial.ExecuteSpecialCommand(ctx, c.Executor.Conn, command)
 }
 
-func (p *Client) IsConnected() bool {
-	return p.Executor != nil && p.Executor.IsConnected()
+func (c *Client) ExecuteQuery(ctx context.Context, query string) (Result, error) {
+	return c.Executor.Execute(ctx, query)
 }
 
-func (p *Client) GetConnectionInfo() {
-	logger.Log.Debug("Connection information",
-		"connection string", p.Executor.Conn.Config().ConnString(),
-		"host", p.Executor.Host,
-		"Port", p.Executor.Port,
-		"Database", p.Executor.Database,
-		"User", p.Executor.User,
-		"URI", p.Executor.URI,
-	)
+func (c *Client) IsConnected() bool {
+	return c.Executor != nil && c.Executor.IsConnected()
 }
 
-func (p *Client) ChangeDatabase(dbName string) error {
-	if !p.IsConnected() {
+func (c *Client) ChangeDatabase(ctx context.Context, dbName string) error {
+	if !c.IsConnected() {
 		return fmt.Errorf("not connected to any database")
 	}
 
 	exec, err := NewExecutor(
-		p.Executor.Host,
+		c.Executor.Host,
 		dbName,
-		p.Executor.User,
-		p.Executor.Password,
-		p.Executor.Port,
+		c.Executor.User,
+		c.Executor.Password,
+		c.Executor.Port,
 		"",
-		p.ctx,
+		ctx,
 	)
 	if err != nil {
 		return err
 	}
-	p.Executor = exec
-	p.CurrentDB = dbName
+	c.Executor = exec
+	c.CurrentDB = dbName
 	logger.Log.Info("Database changed", "database", dbName)
 
 	return nil
+}
+
+func (c *Client) ParsePrompt(str string) string {
+	str = strings.ReplaceAll(str, "\\t", c.now.Format("02/06/2006 15:04:05"))
+	if c.Executor.User != "" {
+		str = strings.ReplaceAll(str, "\\u", c.Executor.User)
+	} else {
+		str = strings.ReplaceAll(str, "\\u", "(nil)")
+	}
+
+	if c.Executor.Host != "" {
+		str = strings.ReplaceAll(str, "\\H", c.Executor.Host)
+		str = strings.ReplaceAll(str, "\\h", func() string {
+			return strings.Split(c.Executor.Host, ".")[0]
+		}())
+	} else {
+		str = strings.ReplaceAll(str, "\\H", "(nil)")
+		str = strings.ReplaceAll(str, "\\h", "(nil)")
+	}
+
+	if c.CurrentDB != "" {
+		str = strings.ReplaceAll(str, "\\d", c.CurrentDB)
+	} else {
+		str = strings.ReplaceAll(str, "\\d", "(nil)")
+	}
+	if c.Executor.Port != 0 {
+		str = strings.ReplaceAll(str, "\\p", fmt.Sprintf("%d", c.Executor.Port))
+	} else {
+		str = strings.ReplaceAll(str, "\\p", "5432")
+	}
+
+	str = strings.ReplaceAll(str, "\\n", "\n")
+
+	return str
+}
+
+func (c *Client) GetUser() string {
+	return c.Executor.User
+}
+
+func (c *Client) GetDatabase() string {
+	return c.Executor.Database
+}
+
+func (c *Client) GetPort() uint16 {
+	return c.Executor.Port
+}
+
+func (c *Client) GetHost() string {
+	return c.Executor.Host
+}
+
+func (c *Client) GetConnectionInfo() {
+	logger.Log.Debug("Connection information",
+		"connection string", c.Executor.Conn.Config().ConnString(),
+		"host", c.Executor.Host,
+		"Port", c.Executor.Port,
+		"Database", c.Executor.Database,
+		"User", c.Executor.User,
+		"URI", c.Executor.URI,
+	)
+}
+
+func (c *Client) Close(ctx context.Context) {
+	if c.Executor != nil {
+		c.Executor.Close(ctx)
+	}
 }

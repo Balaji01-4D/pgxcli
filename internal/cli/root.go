@@ -8,6 +8,7 @@ import (
 	"github.com/balaji01-4d/pgxcli/internal/config"
 	"github.com/balaji01-4d/pgxcli/internal/database"
 	"github.com/balaji01-4d/pgxcli/internal/logger"
+	"github.com/balaji01-4d/pgxcli/internal/repl"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -79,23 +80,23 @@ var rootCmd = &cobra.Command{
 		ctx := context.Background()
 
 		postgres := database.New(neverPrompt, forcePrompt, ctx, cfg)
-		defer postgres.Close()
+		defer postgres.Close(ctx)
 
 		if strings.Contains(finalDB, "://") {
-			err := postgres.ConnectURI(finalDB)
+			err := postgres.ConnectURI(ctx, finalDB)
 			if err != nil {
 				printErr(os.Stderr, "%v\n", err)
 				os.Exit(1)
 			}
 		} else if strings.Contains(finalDB, "=") {
-			err := postgres.ConnectDSN(finalDB)
+			err := postgres.ConnectDSN(ctx, finalDB)
 			if err != nil {
 				printErr(os.Stderr, "%v\n", err)
 				os.Exit(1)
 			}
 		} else {
 			logger.Log.Info("Connecting to database", "host", host, "port", port, "database", finalDB, "user", finalUser)
-			err := postgres.Connect(host, finalUser, "", finalDB, "", port)
+			err := postgres.Connect(ctx, host, finalUser, "", finalDB, "", port)
 			if err != nil {
 				logger.Log.Error("Connection failed", "error", err, "host", host, "database", finalDB)
 				printErr(os.Stderr, "%v\n", err)
@@ -106,8 +107,10 @@ var rootCmd = &cobra.Command{
 			printErr(os.Stderr, "Not connected to any database\n")
 			os.Exit(1)
 		}
-		postgres.RunCli()
-		postgres.Close()
+
+		repl := repl.New(postgres, cfg)
+		repl.Run(ctx)
+		repl.Close()
 	},
 }
 

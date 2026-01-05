@@ -11,7 +11,7 @@ import (
 const (
 	Exit pgxspecial.SpecialResultKind = 100 + iota
 	ChangeDB
-	conninfo
+	Conninfo
 )
 
 func init() {
@@ -34,7 +34,7 @@ func registerSpecialCommands() {
 		Syntax:      "\\c database_name",
 		Description: "Change a new database",
 		Handler: func(_ context.Context, _ database.Queryer, s string, _ bool) (pgxspecial.SpecialCommandResult, error) {
-			return ChangeDbAction{dbName: s}, nil
+			return ChangeDbAction{Name: s}, nil
 		},
 		CaseSensitive: true,
 		Alias:         []string{"\\connect"},
@@ -59,7 +59,7 @@ func (e ExitAction) ResultKind() pgxspecial.SpecialResultKind {
 }
 
 type ChangeDbAction struct {
-	dbName string
+	Name string
 }
 
 func (c ChangeDbAction) ResultKind() pgxspecial.SpecialResultKind {
@@ -69,5 +69,5 @@ func (c ChangeDbAction) ResultKind() pgxspecial.SpecialResultKind {
 type ConnInfoAction struct{}
 
 func (g ConnInfoAction) ResultKind() pgxspecial.SpecialResultKind {
-	return conninfo
+	return Conninfo
 }

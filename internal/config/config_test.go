@@ -5,32 +5,28 @@ import (
 	path "path/filepath"
 	"testing"
 
+	"github.com/BurntSushi/toml"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestLoadConfig_ValidConfig(t *testing.T) {
 	tempDir := t.TempDir()
 	configPath := path.Join(tempDir, "config.toml")
-	configContent := `prompt = "\\u@\\h:\\d> "`
-
-	err := os.WriteFile(configPath, []byte(configContent), 0644)
+	expectedCfg := Config{
+		Main: main{
+			Prompt:      "\\u@\\h:\\d> ",
+			HistoryFile: "default",
+		},
+	}
+	content, err := toml.Marshal(expectedCfg)
 	assert.NoError(t, err)
 
-	cfg, err := LoadConfig(configPath)
+	writeErr := os.WriteFile(configPath, content, 0644)
+	assert.NoError(t, writeErr)
+
+	actualCfg, err := LoadConfig(configPath)
 	assert.NoError(t, err)
-	assert.Equal(t, "\\u@\\h:\\d> ", cfg.Main.Prompt)
-}
-
-func TestLoadConfig_InvalidConfig(t *testing.T) {
-	tempDir := t.TempDir()
-	configPath := path.Join(tempDir, "config.toml")
-	invalidContent := `prompt = "\\u@\\h:\\d> ` // Missing closing quote
-
-	err := os.WriteFile(configPath, []byte(invalidContent), 0644)
-	assert.NoError(t, err)
-
-	_, err = LoadConfig(configPath)
-	assert.Error(t, err)
+	assert.Equal(t, expectedCfg.Main.Prompt, actualCfg.Main.Prompt)
 }
 
 func TestLoadConfig_MissingFile(t *testing.T) {

@@ -4,7 +4,7 @@ go 1.25.4
 
 require (
 	github.com/BurntSushi/toml v1.6.0
-	github.com/balaji01-4d/pgxspecial v0.2.0
+	github.com/balaji01-4d/pgxspecial v0.2.1
 	github.com/elk-language/go-prompt v1.3.1
 	github.com/fatih/color v1.18.0
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
@@ -38,6 +38,6 @@ require (
 
 require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/jackc/pgx/v5 v5.7.6
+	github.com/jackc/pgx/v5 v5.8.0
 	github.com/spf13/pflag v1.0.10 // indirect
 )

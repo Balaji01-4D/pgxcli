@@ -11,6 +11,7 @@ import (
 
 	"github.com/balaji01-4d/pgxcli/internal/config"
 	"github.com/balaji01-4d/pgxcli/internal/database"
+	"github.com/balaji01-4d/pgxcli/internal/logger"
 	render "github.com/balaji01-4d/pgxcli/internal/repl/renderer"
 	"github.com/balaji01-4d/pgxspecial"
 	"github.com/elk-language/go-prompt"
@@ -86,6 +87,7 @@ func (r *Repl) Run(ctx context.Context) {
 	for {
 		suffixStr := r.client.ParsePrompt(r.config.Main.Prompt)
 		query := r.Read(suffixStr)
+		logger.Log.Info("Executing query", "query", query)
 
 		if strings.TrimSpace(query) == "" {
 			continue
@@ -94,6 +96,7 @@ func (r *Repl) Run(ctx context.Context) {
 
 		metaResult, okay, err := r.client.ExecuteSpecial(ctx, query)
 		if err != nil {
+			logger.Log.Error("Error executing special command", "err", err)
 			r.PrintError(err)
 			continue
 		}
@@ -126,10 +129,12 @@ func (r *Repl) Run(ctx context.Context) {
 				continue
 			}
 			r.Print(tw.Render())
+			fmt.Println()
 			r.PrintTime(res.Duration())
 			continue
 		case *database.ExecResult:
 			r.Print(res.Status)
+			fmt.Println()
 			r.PrintTime(res.Duration)
 			continue
 		}
@@ -188,6 +193,7 @@ func (r *Repl) handleSpecialCommand(ctx context.Context, metaResult pgxspecial.S
 	case pgxspecial.ResultKindDescribeTable:
 		tables, err := render.RenderDescribeTableResult(metaResult)
 		if err != nil {
+			logger.Log.Error("Error rendering describe table result", "err", err)
 			return "", false, err
 		}
 		return render.RenderTables(tables, table.StyleBold), false, nil

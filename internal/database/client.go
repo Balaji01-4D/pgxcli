@@ -92,7 +92,9 @@ func (c *Client) ConnectURI(ctx context.Context, uri string) error {
 
 func (c *Client) ExecuteSpecial(ctx context.Context,
 	command string) (pgxspecial.SpecialCommandResult, bool, error) {
-	return pgxspecial.ExecuteSpecialCommand(ctx, c.Executor.Conn, command)
+	result, okay, err := pgxspecial.ExecuteSpecialCommand(ctx, c.Executor.Conn, command)
+	logger.Log.Info("Executed special command", "command", command, "result", result, "okay", okay, "err", err)
+	return result, okay, err
 }
 
 func (c *Client) ExecuteQuery(ctx context.Context, query string) (Result, error) {

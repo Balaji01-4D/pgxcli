@@ -17,6 +17,7 @@ import (
 	"github.com/elk-language/go-prompt"
 	"github.com/fatih/color"
 	"github.com/jedib0t/go-pretty/v6/table"
+	"golang.org/x/term"
 )
 
 var (
@@ -63,6 +64,17 @@ func (r *Repl) Read(prefix string) string {
 	return text
 }
 
+func (r *Repl) ReadPassword() (string, error) {
+	r.Print("Enter the password: ")
+	pass, err := term.ReadPassword(int(os.Stdin.Fd()))
+	if err != nil {
+		return "", err
+	}
+	fmt.Println()
+
+	return string(pass), nil
+}
+
 func (r *Repl) PrintError(err error) {
 	printErr(os.Stderr, "%v\n", err)
 }
@@ -87,7 +99,6 @@ func (r *Repl) Run(ctx context.Context) {
 	for {
 		suffixStr := r.client.ParsePrompt(r.config.Main.Prompt)
 		query := r.Read(suffixStr)
-		logger.Log.Info("Executing query", "query", query)
 
 		if strings.TrimSpace(query) == "" {
 			continue

@@ -2,13 +2,16 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"os"
+	"os/user"
 	"strings"
 
 	"github.com/balaji01-4d/pgxcli/internal/config"
 	"github.com/balaji01-4d/pgxcli/internal/database"
 	"github.com/balaji01-4d/pgxcli/internal/logger"
 	"github.com/balaji01-4d/pgxcli/internal/repl"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -53,7 +56,19 @@ var rootCmd = &cobra.Command{
 
 		// when pgxcli -d mydb myuser, here database name is given as flag then next arguement is considered as user
 		finalDB, finalUser := resolveDBAndUser(dbnameOpt, usernameOpt, argDB, argUser)
-		// currently we dont use the user
+
+		if finalUser == "" {
+			currentser, err := user.Current()
+			if err != nil {
+				printErr(os.Stderr, "Failed to get current user: %v\n", err)
+				os.Exit(1)
+			}
+			finalUser = currentser.Username
+		}
+
+		if finalDB == "" {
+			finalDB = finalUser // default database name is same as username
+		}
 
 		cfg := config.DefaultConfig
 
@@ -80,35 +95,65 @@ var rootCmd = &cobra.Command{
 		ctx := context.Background()
 
 		postgres := database.New(neverPrompt, forcePrompt, ctx, cfg)
+		repl := repl.New(postgres, cfg)
 		defer postgres.Close(ctx)
+		var connector database.Connector
 
-		if strings.Contains(finalDB, "://") {
-			err := postgres.ConnectURI(ctx, finalDB)
-			if err != nil {
-				printErr(os.Stderr, "%v\n", err)
-				os.Exit(1)
-			}
-		} else if strings.Contains(finalDB, "=") {
-			err := postgres.ConnectDSN(ctx, finalDB)
-			if err != nil {
-				printErr(os.Stderr, "%v\n", err)
-				os.Exit(1)
+		if strings.Contains(finalDB, "://") || strings.Contains(finalDB, "=") {
+			connector = &database.ConnStringConnector{
+				ConnString: dbnameOpt,
 			}
 		} else {
-			logger.Log.Info("Connecting to database", "host", host, "port", port, "database", finalDB, "user", finalUser)
-			err := postgres.Connect(ctx, host, finalUser, "", finalDB, "", port)
-			if err != nil {
-				logger.Log.Error("Connection failed", "error", err, "host", host, "database", finalDB)
-				printErr(os.Stderr, "%v\n", err)
+			var password string
+
+			if neverPrompt {
+				password = os.Getenv("PGPASSWORD")
+			}
+
+			if forcePrompt && password == "" {
+				pwd, err := repl.ReadPassword()
+				if err != nil {
+					printErr(os.Stderr, "Failed to read password: %v\n", err)
+					os.Exit(1)
+				}
+				password = pwd
+			}
+
+			logger.Log.Debug("Connecting to database", "host", host, "port", port, "database", finalDB, "user", finalUser)
+			connector = &database.ConfigConnector{
+				User:     finalUser,
+				Password: password,
+				Database: finalDB,
+				Host:     host,
+				Port:     port,
+			}
+		}
+
+		ConnErr := postgres.Connect(ctx, connector)
+		if ConnErr != nil {
+			if shouldAskForPassword(ConnErr) {
+				pwd, err := repl.ReadPassword()
+				if err != nil {
+					printErr(os.Stderr, "Failed to read password: %v\n", err)
+					os.Exit(1)
+				}
+				connector.UpdatePassword(pwd)
+				ConnErr = postgres.Connect(ctx, connector)
+				if ConnErr != nil {
+					printErr(os.Stderr, "%v\n", ConnErr)
+					os.Exit(1)
+				}
+			} else {
+				printErr(os.Stderr, "%v\n", ConnErr)
 				os.Exit(1)
 			}
 		}
+
 		if !postgres.IsConnected() {
 			printErr(os.Stderr, "Not connected to any database\n")
 			os.Exit(1)
 		}
 
-		repl := repl.New(postgres, cfg)
 		repl.Run(ctx)
 		repl.Close()
 	},
@@ -168,4 +213,18 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+func shouldAskForPassword(err error) bool {
+	if neverPrompt {
+		return false
+	}
+
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		if pgErr.Code == "28P01" { // invalid_password error code
+			return true
+		}
+	}
+	return false
 }

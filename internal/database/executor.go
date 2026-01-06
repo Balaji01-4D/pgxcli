@@ -3,7 +3,6 @@ package database
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/balaji01-4d/pgxcli/internal/logger"
@@ -28,7 +27,7 @@ type Executor struct {
 	Conn     *pgx.Conn
 }
 
-func NewExec(ctx context.Context, c Connector) (*Executor, error) {
+func NewExecutor(ctx context.Context, c Connector) (*Executor, error) {
 	conn, err := c.Connect(ctx)
 	if err != nil {
 		return nil, err
@@ -40,56 +39,6 @@ func NewExec(ctx context.Context, c Connector) (*Executor, error) {
 		return nil, err
 	}
 
-	return &Executor{
-		Host:     conn.Config().Host,
-		Port:     conn.Config().Port,
-		Database: conn.Config().Database,
-		User:     conn.Config().User,
-		Password: conn.Config().Password,
-		URI:      conn.Config().ConnString(),
-		Conn:     conn,
-	}, nil
-}
-
-// constructor function to create new executor
-func NewExecutor(host, database string, user string, password string,
-	port uint16, dsn string, ctx context.Context) (*Executor, error) {
-
-	if dsn == "" {
-		var dsnParts []string
-		if host != "" {
-			dsnParts = append(dsnParts, fmt.Sprintf("host=%s", host))
-		}
-		if port != 0 {
-			dsnParts = append(dsnParts, fmt.Sprintf("port=%d", port))
-		}
-		if user != "" {
-			dsnParts = append(dsnParts, fmt.Sprintf("user=%s", user))
-		}
-		if database != "" {
-			dsnParts = append(dsnParts, fmt.Sprintf("dbname=%s", database))
-		}
-		if password != "" {
-			dsnParts = append(dsnParts, fmt.Sprintf("password=%s", password))
-		}
-		dsn = strings.Join(dsnParts, " ")
-		logger.Log.Debug("Constructed DSN", "dsn", dsn)
-	}
-
-	// create a new connection conn
-	conn, err := pgx.Connect(ctx, dsn)
-	if err != nil {
-		logger.Log.Error("Failed to create connection", "error", err)
-		return nil, err
-	}
-
-	// test the connection
-	err = conn.Ping(ctx)
-	if err != nil {
-		logger.Log.Error("Connection ping failed", "error", err)
-		return nil, err
-	}
-	// reassigning values
 	return &Executor{
 		Host:     conn.Config().Host,
 		Port:     conn.Config().Port,

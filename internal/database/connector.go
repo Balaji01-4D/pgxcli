@@ -8,6 +8,7 @@ import (
 
 type Connector interface {
 	Connect(ctx context.Context) (*pgx.Conn, error)
+	UpdatePassword(password string)
 }
 
 type ConnStringConnector struct {
@@ -18,6 +19,15 @@ func NewConnStringConnector(connString string) *ConnStringConnector {
 	return &ConnStringConnector{
 		ConnString: connString,
 	}
+}
+
+func (c *ConnStringConnector) UpdatePassword(newPassword string) {
+	cfg, err := pgx.ParseConfig(c.ConnString)
+	if err != nil {
+		return
+	}
+	cfg.Password = newPassword
+	c.ConnString = cfg.ConnString()
 }
 
 func (c *ConnStringConnector) Connect(ctx context.Context) (*pgx.Conn, error) {
@@ -44,6 +54,10 @@ func NewConfigConnector(host, database, user, password string, port uint16) *Con
 		Password: password,
 		Port:     port,
 	}
+}
+
+func (c *ConfigConnector) UpdatePassword(newPassword string) {
+	c.Password = newPassword
 }
 
 func (c *ConfigConnector) Connect(ctx context.Context) (*pgx.Conn, error) {

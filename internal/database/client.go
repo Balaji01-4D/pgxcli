@@ -3,16 +3,12 @@ package database
 import (
 	"context"
 	"fmt"
-	"os"
-	osUser "os/user"
 	"strings"
 	"time"
 
 	"github.com/balaji01-4d/pgxcli/internal/config"
 	"github.com/balaji01-4d/pgxcli/internal/logger"
 	"github.com/balaji01-4d/pgxspecial"
-
-	"github.com/jackc/pgx/v5"
 )
 
 type Client struct {
@@ -33,61 +29,16 @@ func New(neverPasswordPrompt, forcePasswordPrompt bool, ctx context.Context, cfg
 	return postgres
 }
 
-func (c *Client) Connect(ctx context.Context, host, user, password, database, dsn string, port uint16) error {
-	if user == "" {
-		currentUser, err := osUser.Current()
-		if err != nil {
-			return fmt.Errorf("failed to get current user: %w", err)
-		}
-		user = currentUser.Username
-	}
-
-	if database == "" {
-		database = user
-	}
-
-	if c.NeverPasswordPrompt && password == "" {
-		password = os.Getenv("PGPASSWORD")
-	}
-
-	if c.ForcePasswordPrompt && password == "" {
-		fmt.Print("Password: ")
-		var pwd string
-		fmt.Scanln(&pwd)
-		password = strings.TrimSpace(pwd)
-	}
-
-	if dsn != "" {
-		parsedDsn, err := pgx.ParseConfig(dsn)
-		if err != nil {
-			return fmt.Errorf("failed to parse DSN: %w", err)
-		}
-
-		host = parsedDsn.Host
-		port = parsedDsn.Port
-	}
-
-	exec, err := NewExecutor(host, database, user, password, port, dsn, ctx)
+func (c *Client) Connect(ctx context.Context, connector Connector) error {
+	exec, err := NewExecutor(ctx, connector)
 	if err != nil {
 		return err
 	}
 	c.Executor = exec
-	c.CurrentDB = database
-	logger.Log.Info("Database connection established", "database", database, "user", user)
+	c.CurrentDB = exec.Database
+	logger.Log.Info("Database connection established", "database", exec.Database, "user", exec.User)
 
 	return nil
-}
-
-func (c *Client) ConnectDSN(ctx context.Context, dsn string) error {
-	return c.Connect(ctx, "", "", "", "", dsn, 0)
-}
-
-func (c *Client) ConnectURI(ctx context.Context, uri string) error {
-	parsedURI, err := pgx.ParseConfig(uri)
-	if err != nil {
-		return fmt.Errorf("failed to parse URI: %w", err)
-	}
-	return c.Connect(ctx, parsedURI.Host, parsedURI.User, parsedURI.Password, parsedURI.Database, "", parsedURI.Port)
 }
 
 func (c *Client) ExecuteSpecial(ctx context.Context,
@@ -110,14 +61,14 @@ func (c *Client) ChangeDatabase(ctx context.Context, dbName string) error {
 		return fmt.Errorf("not connected to any database")
 	}
 
+	connConfig := c.Executor.Conn.Config().Copy()
+	connConfig.Database = dbName
+
+	connector := NewConnStringConnector(connConfig.ConnString())
+
 	exec, err := NewExecutor(
-		c.Executor.Host,
-		dbName,
-		c.Executor.User,
-		c.Executor.Password,
-		c.Executor.Port,
-		"",
 		ctx,
+		connector,
 	)
 	if err != nil {
 		return err

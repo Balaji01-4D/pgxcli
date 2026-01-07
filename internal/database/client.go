@@ -64,7 +64,10 @@ func (c *Client) ChangeDatabase(ctx context.Context, dbName string) error {
 	connConfig := c.Executor.Conn.Config().Copy()
 	connConfig.Database = dbName
 
-	connector := NewConnStringConnector(connConfig.ConnString())
+	connector, err := NewPGConnectorFromConnString(connConfig.ConnString())
+	if err != nil {
+		return err
+	}
 
 	exec, err := NewExecutor(
 		ctx,

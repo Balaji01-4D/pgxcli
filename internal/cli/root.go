@@ -100,8 +100,10 @@ var rootCmd = &cobra.Command{
 		var connector database.Connector
 
 		if strings.Contains(finalDB, "://") || strings.Contains(finalDB, "=") {
-			connector = &database.ConnStringConnector{
-				ConnString: dbnameOpt,
+			connector, err = database.NewPGConnectorFromConnString(finalDB)
+			if err != nil {
+				printErr(os.Stderr, "Invalid connection string: %v\n", err)
+				os.Exit(1)
 			}
 		} else {
 			var password string
@@ -120,12 +122,16 @@ var rootCmd = &cobra.Command{
 			}
 
 			logger.Log.Debug("Connecting to database", "host", host, "port", port, "database", finalDB, "user", finalUser)
-			connector = &database.ConfigConnector{
-				User:     finalUser,
-				Password: password,
-				Database: finalDB,
-				Host:     host,
-				Port:     port,
+			connector, err = database.NewPGConnectorFromFields(
+				host,
+				finalDB,
+				finalUser,
+				password,
+				port,
+			)
+			if err != nil {
+				printErr(os.Stderr, "Failed to create connector: %v\n", err)
+				os.Exit(1)
 			}
 		}
 
@@ -221,10 +227,8 @@ func shouldAskForPassword(err error) bool {
 	}
 
 	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) {
-		if pgErr.Code == "28P01" { // invalid_password error code
+	if errors.As(err, &pgErr) && pgErr.Code == "28P01" {
 			return true
-		}
 	}
 	return false
 }

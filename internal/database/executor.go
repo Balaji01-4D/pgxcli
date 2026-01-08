@@ -51,7 +51,7 @@ func NewExecutor(ctx context.Context, c Connector) (*Executor, error) {
 }
 
 // For executing queries like SELECT, SHOW etc.
-func (e *Executor) query(ctx context.Context, sql string, args ...interface{}) (*QueryResult, error) {
+func (e *Executor) query(ctx context.Context, sql string, args ...any) (*QueryResult, error) {
 	logger.Log.Debug("Executing query", "sql", sql)
 	start := time.Now()
 	rows, err := e.Conn.Query(ctx, sql, args...)
@@ -76,7 +76,7 @@ func (e *Executor) query(ctx context.Context, sql string, args ...interface{}) (
 }
 
 // For executing commands like INSERT, UPDATE, DELETE etc.
-func (e *Executor) exec(ctx context.Context, sql string, args ...interface{}) (*ExecResult, error) {
+func (e *Executor) exec(ctx context.Context, sql string, args ...any) (*ExecResult, error) {
 	logger.Log.Debug("Executing command", "sql", sql)
 	start := time.Now()
 	tag, err := e.Conn.Exec(ctx, sql, args...)
@@ -95,7 +95,7 @@ func (e *Executor) exec(ctx context.Context, sql string, args ...interface{}) (*
 }
 
 // Execute method to determine whether to run query or exec based on SQL type
-func (e *Executor) Execute(ctx context.Context, sql string, args ...interface{}) (Result, error) {
+func (e *Executor) Execute(ctx context.Context, sql string, args ...any) (Result, error) {
 	if parser.IsQuery(sql) {
 		return e.query(ctx, sql, args...)
 	}

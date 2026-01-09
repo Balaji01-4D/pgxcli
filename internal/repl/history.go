@@ -2,6 +2,7 @@ package repl
 
 import (
 	"bufio"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -27,7 +28,12 @@ func newHistory(historyPath string) *history {
 }
 
 func (h *history) loadHistory(path string) {
-	history, err := loadHistoryFromFile(path, maxHistoryLines)
+	file, err := os.Open(path)
+	if err != nil {
+		return
+	}
+	defer file.Close()
+	history, err := loadHistoryFromFile(file, maxHistoryLines)
 	if err != nil {
 		h.entries = []string{}
 		h.loadCount = 0
@@ -67,16 +73,10 @@ func getHistoryFilePath() string {
 	return filepath.Join(homeDir, ".pgxcli_history")
 }
 
-func loadHistoryFromFile(filePath string, maxHistoryLines int) ([]string, error) {
-	f, err := os.Open(filePath)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
+func loadHistoryFromFile(r io.Reader, maxHistoryLines int) ([]string, error) {
 	var history []string
 
-	scanner := bufio.NewScanner(f)
+	scanner := bufio.NewScanner(r)
 	// Use a circular buffer approach: keep only last N lines
 	for scanner.Scan() {
 		history = append(history, scanner.Text())

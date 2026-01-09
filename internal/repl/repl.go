@@ -95,6 +95,7 @@ func (r *Repl) PrintViaPager(output string) {
 }
 
 func (r *Repl) Run(ctx context.Context) {
+	r.history.loadHistory()
 
 	for {
 		suffixStr := r.client.ParsePrompt(r.config.Main.Prompt)

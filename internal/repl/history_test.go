@@ -31,7 +31,10 @@ func TestHistorySaveHistory(t *testing.T) {
 	tempFile, err := os.CreateTemp("", "history_test")
 	assert.NoError(t, err)
 
-	defer os.Remove(tempFile.Name())
+	defer func() {
+		err := os.Remove(tempFile.Name())
+		assert.NoError(t, err)
+	}()
 
 	histories := []string{"query1", "query2", "query3", "query4"}
 

@@ -228,7 +228,7 @@ func shouldAskForPassword(err error) bool {
 
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.Code == "28P01" {
-			return true
+		return true
 	}
 	return false
 }

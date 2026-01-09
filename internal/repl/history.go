@@ -13,7 +13,7 @@ import (
 const maxHistoryLines = 1000
 
 type history struct {
-	path string
+	path      string
 	entries   []string
 	loadCount int
 }

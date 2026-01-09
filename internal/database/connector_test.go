@@ -15,12 +15,12 @@ func TestPGConnector_UpdatePassword_ConnString(t *testing.T) {
 		newPassword string
 	}{
 		{
-			name: "uri format connection string",
+			name:        "uri format connection string",
 			connString:  "postgresql://testuser:oldpassword@localhost:5432/testdb",
 			newPassword: "newpassword123",
 		},
 		{
-			name: "uri format coonnection string when no password initially",
+			name:        "uri format coonnection string when no password initially",
 			connString:  "postgresql://testuser@localhost:5432/testdb",
 			newPassword: "newpassword123",
 		},

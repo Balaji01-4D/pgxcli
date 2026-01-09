@@ -9,12 +9,12 @@ import (
 )
 
 func TestNewHistory(t *testing.T) {
-	tests := []struct{
+	tests := []struct {
 		name string
 		path string
 
 		expected *history
-	} {
+	}{
 		{name: "with default history file", expected: &history{path: getHistoryFilePath()}},
 		{name: "with custom history file", path: "/custom_path", expected: &history{path: "/custom_path"}},
 	}
@@ -26,7 +26,6 @@ func TestNewHistory(t *testing.T) {
 		})
 	}
 }
-
 
 func TestHistorySaveHistory(t *testing.T) {
 	tempFile, err := os.CreateTemp("", "history_test")
@@ -44,12 +43,11 @@ func TestHistorySaveHistory(t *testing.T) {
 	}
 	h.saveHistory()
 
-
 	data, err := os.ReadFile(tempFile.Name())
 	assert.NoError(t, err)
 
 	expected := strings.Join(histories, "\n") + "\n"
-	actual := string(data) 
+	actual := string(data)
 
 	assert.Equal(t, expected, actual)
 

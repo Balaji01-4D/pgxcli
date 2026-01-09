@@ -13,6 +13,7 @@ import (
 const maxHistoryLines = 1000
 
 type history struct {
+	path string
 	entries   []string
 	loadCount int
 }
@@ -20,20 +21,20 @@ type history struct {
 func newHistory(historyPath string) *history {
 	h := &history{}
 	if historyPath == "" || historyPath == config.Default {
-		h.loadHistory(getHistoryFilePath())
+		h.path = getHistoryFilePath()
 	} else {
-		h.loadHistory(historyPath)
+		h.path = historyPath
 	}
 	return h
 }
 
-func (h *history) loadHistory(path string) {
-	file, err := os.Open(path)
+func (h *history) loadHistory() {
+	file, err := os.Open(h.path)
 	if err != nil {
 		return
 	}
 	defer file.Close()
-	history, err := loadHistoryFromFile(file, maxHistoryLines)
+	history, err := loadHistory(file, maxHistoryLines)
 	if err != nil {
 		h.entries = []string{}
 		h.loadCount = 0
@@ -44,7 +45,6 @@ func (h *history) loadHistory(path string) {
 }
 
 func (h *history) saveHistory() {
-	historyFilePath := getHistoryFilePath()
 
 	// Only save new commands added during this session
 	newCommands := h.entries[h.loadCount:]
@@ -52,7 +52,7 @@ func (h *history) saveHistory() {
 		return
 	}
 
-	f, err := os.OpenFile(historyFilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(h.path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return
 	}
@@ -73,7 +73,7 @@ func getHistoryFilePath() string {
 	return filepath.Join(homeDir, ".pgxcli_history")
 }
 
-func loadHistoryFromFile(r io.Reader, maxHistoryLines int) ([]string, error) {
+func loadHistory(r io.Reader, maxHistoryLines int) ([]string, error) {
 	var history []string
 
 	scanner := bufio.NewScanner(r)

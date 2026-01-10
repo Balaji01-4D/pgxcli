@@ -32,6 +32,8 @@ func TestHistorySaveHistory(t *testing.T) {
 	assert.NoError(t, err)
 
 	defer func() {
+		closeErr := tempFile.Close()
+		assert.NoError(t, closeErr)
 		err := os.Remove(tempFile.Name())
 		assert.NoError(t, err)
 	}()

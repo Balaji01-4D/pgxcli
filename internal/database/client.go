@@ -12,19 +12,15 @@ import (
 )
 
 type Client struct {
-	CurrentDB           string
-	Executor            *Executor
-	ForcePasswordPrompt bool
-	NeverPasswordPrompt bool
+	CurrentDB string
+	Executor  *Executor
 
 	now time.Time
 }
 
-func New(neverPasswordPrompt, forcePasswordPrompt bool, ctx context.Context, cfg config.Config) *Client {
+func New(ctx context.Context, cfg config.Config) *Client {
 	postgres := &Client{
-		NeverPasswordPrompt: neverPasswordPrompt,
-		ForcePasswordPrompt: forcePasswordPrompt,
-		now:                 time.Now(),
+		now: time.Now(),
 	}
 	return postgres
 }

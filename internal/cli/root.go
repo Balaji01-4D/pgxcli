@@ -9,7 +9,7 @@ import (
 const version = "v0.1.0"
 
 // opts holds all flag values bound to the root command.
-var opts Options
+var opts options
 
 var rootCmd = &cobra.Command{
 	Use:     "pgxcli [DBNAME] [USERNAME]",

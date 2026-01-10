@@ -4,7 +4,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type Options struct {
+type options struct {
 	Host        string
 	Port        uint16
 	ForcePrompt bool
@@ -14,7 +14,7 @@ type Options struct {
 	Debug       bool
 }
 
-func bindFlags(cmd *cobra.Command, opts *Options) {
+func bindFlags(cmd *cobra.Command, opts *options) {
 	cmd.Flags().StringVarP(&opts.Host, "host", "h", "", "host address of the postgres database")
 	cmd.Flags().Uint16VarP(&opts.Port, "port", "p", 5432, "port number at which the postgres server is listening")
 	cmd.Flags().StringVarP(&opts.UsernameOpt, "username", "u", "", "Username to connect to the postgres database.")

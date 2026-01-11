@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/balaji01-4d/pgxcli/internal/config"
 	"github.com/balaji01-4d/pgxcli/internal/logger"
 	"github.com/balaji01-4d/pgxspecial"
 )
@@ -18,7 +17,7 @@ type Client struct {
 	now time.Time
 }
 
-func New(ctx context.Context, cfg config.Config) *Client {
+func New() *Client {
 	postgres := &Client{
 		now: time.Now(),
 	}

@@ -47,10 +47,10 @@ type Client interface {
 type Repl struct {
 	history *history
 	client  Client
-	config  config.Config
+	config  *config.Config
 }
 
-func New(client Client, cfg config.Config) *Repl {
+func New(client Client, cfg *config.Config) *Repl {
 	repl := &Repl{client: client, config: cfg}
 	repl.history = newHistory(cfg.Main.HistoryFile)
 	return repl

@@ -3,19 +3,8 @@ package cli
 import (
 	"os"
 
-	"github.com/balaji01-4d/pgxcli/internal/config"
-	postgres "github.com/balaji01-4d/pgxcli/internal/database"
-	"github.com/balaji01-4d/pgxcli/internal/repl"
 	"github.com/spf13/cobra"
 )
-
-const version = "v0.1.0"
-
-type pgxcli struct {
-	config *config.Config
-	client *postgres.Client
-	repl   *repl.Repl
-}
 
 // opts holds all flag values bound to the root command.
 var opts options

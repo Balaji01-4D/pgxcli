@@ -2,11 +2,12 @@ package cli
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"os/signal"
 	osuser "os/user"
 	"strings"
 
-	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
 	"github.com/balaji01-4d/pgxcli/internal/config"
@@ -15,15 +16,12 @@ import (
 	"github.com/balaji01-4d/pgxcli/internal/repl"
 )
 
-var (
-	printErr = color.New(color.FgHiRed).FprintfFunc()
-)
-
-// run is the cobra Run func, extracted to keep root.go minimal.
 func run(cmd *cobra.Command, args []string) {
-	logger.InitLogger(opts.Debug, "logs/pgxcli.log")
-	logger.Log.Info("pgxcli started")
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	
 	var argDB string
 	var argUser string
 	if len(args) > 0 {
@@ -32,56 +30,62 @@ func run(cmd *cobra.Command, args []string) {
 	if len(args) > 1 {
 		argUser = args[1]
 	}
-
+	
 	finalDB, finalUser := resolveDBAndUser(opts.DBNameOpt, opts.UsernameOpt, argDB, argUser)
 
+	// Load config
+	cfg := getConfig()
+
+	logger.InitLogger(opts.Debug, "logs/pgxcli.log")
+
+	postgres := database.New(ctx, cfg)
+	
+	r := repl.New(postgres, cfg)
+
 	if finalUser == "" {
-		currentser, err := osuser.Current()
-		if err != nil {
-			printErr(os.Stderr, "Failed to get current user: %v\n", err)
-			os.Exit(1)
+		finalUser = os.Getenv("PGUSER")
+		if finalUser == "" {
+			currentUser, err := osuser.Current()
+			if err != nil {
+				r.PrintError(err)
+				os.Exit(1)
+			}
+			finalUser = currentUser.Username
 		}
-		finalUser = currentser.Username
 	}
 	if finalDB == "" {
 		finalDB = finalUser
 	}
-
-	// Load config
-	cfg := config.DefaultConfig
-	configDir, err := config.GetConfigDir()
-	if err != nil {
-		logger.Log.Error("Failed to get config directory", "error", err)
-	} else {
-		configPath, okay := config.CheckConfigExists(configDir)
-		if !okay {
-			logger.Log.Info("Config file does not exist, creating default config", "path", configPath)
-			if err := config.SaveConfig(configPath, config.DefaultConfig); err != nil {
-				logger.Log.Error("Failed to create default config file", "error", err)
-			}
-		} else {
-			loadedConfig, err := config.LoadConfig(configPath)
-			if err != nil {
-				logger.Log.Error("Failed to load config file, using default config", "error", err)
-			} else {
-				cfg = loadedConfig
-			}
+	
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt)
+	
+	go func() {
+		for {
+			<-sigChan
 		}
+	}()
+
+	appErr := startApplication(ctx, cfg, finalDB, finalUser)
+	if appErr != nil {
+		r.PrintError(appErr)
 	}
+}
 
-	ctx := context.Background()
-
-	postgres := database.New(opts.NeverPrompt, opts.ForcePrompt, ctx, cfg)
-	replClient := repl.New(postgres, cfg)
+func startApplication(ctx context.Context, cfg config.Config, db, user string) error {
+	postgres := database.New(ctx, cfg)
 	defer postgres.Close(ctx)
 
-	var connector database.Connector
+	replClient := repl.New(postgres, cfg)
+	defer replClient.Close()
 
-	if strings.Contains(finalDB, "://") || strings.Contains(finalDB, "=") {
-		connector, err = database.NewPGConnectorFromConnString(finalDB)
+	var connector database.Connector
+	var err error
+
+	if strings.Contains(db, "://") || strings.Contains(db, "=") {
+		connector, err = database.NewPGConnectorFromConnString(db)
 		if err != nil {
-			printErr(os.Stderr, "Invalid connection string: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("Invalid connection string: %v\n", err)
 		}
 	} else {
 		var password string
@@ -93,23 +97,21 @@ func run(cmd *cobra.Command, args []string) {
 		if opts.ForcePrompt && password == "" {
 			pwd, err := replClient.ReadPassword()
 			if err != nil {
-				printErr(os.Stderr, "Failed to read password: %v\n", err)
-				os.Exit(1)
+				return fmt.Errorf("Failed to read password: %v\n", err)
 			}
 			password = pwd
 		}
 
-		logger.Log.Debug("Connecting to database", "host", opts.Host, "port", opts.Port, "database", finalDB, "user", finalUser)
+		logger.Log.Debug("Connecting to database", "host", opts.Host, "port", opts.Port, "database", db, "user", user)
 		connector, err = database.NewPGConnectorFromFields(
 			opts.Host,
-			finalDB,
-			finalUser,
+			db,
+			user,
 			password,
 			opts.Port,
 		)
 		if err != nil {
-			printErr(os.Stderr, "Failed to create connector: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("Failed to create connector: %v\n", err)
 		}
 	}
 
@@ -118,26 +120,48 @@ func run(cmd *cobra.Command, args []string) {
 		if shouldAskForPassword(ConnErr, opts.NeverPrompt) {
 			pwd, err := replClient.ReadPassword()
 			if err != nil {
-				printErr(os.Stderr, "Failed to read password: %v\n", err)
-				os.Exit(1)
+				return fmt.Errorf("Failed to read password: %v\n", err)
 			}
 			connector.UpdatePassword(pwd)
 			ConnErr = postgres.Connect(ctx, connector)
 			if ConnErr != nil {
-				printErr(os.Stderr, "%v\n", ConnErr)
-				os.Exit(1)
+				return err
 			}
 		} else {
-			printErr(os.Stderr, "%v\n", ConnErr)
-			os.Exit(1)
+			return ConnErr
 		}
 	}
 
 	if !postgres.IsConnected() {
-		printErr(os.Stderr, "Not connected to any database\n")
-		os.Exit(1)
+		return fmt.Errorf("Not connected to any database\n")
 	}
 
 	replClient.Run(ctx)
 	replClient.Close()
+
+	return nil
+}
+
+
+func getConfig() config.Config {
+	cfg := config.DefaultConfig
+	configDir, err := config.GetConfigDir()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "unable to get configuartion directory, using the default configuration\n")
+	}
+
+	configPath, exists := config.CheckConfigExists(configDir)
+	if exists {
+		userCfg, err := config.LoadConfig(configPath)
+		if err == nil {
+			fmt.Fprintf(os.Stderr, "unable to load user configuration\nerr:%v", err)
+			cfg = userCfg
+		}
+	} else {
+		err := config.SaveConfig(configPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to save config %v\n", err)
+		}
+	}
+	return cfg
 }

@@ -77,6 +77,8 @@ func (p *pgxCLI) start(ctx context.Context, db, user string) error {
 		return fmt.Errorf("Not connected to any database\n")
 	}
 
+	p.repl.Run(ctx)
+
 	return nil
 }
 

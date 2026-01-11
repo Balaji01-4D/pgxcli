@@ -12,3 +12,6 @@ prompt = "\\u@\\h:\\d> "
 
 # history
 history_file = "default"
+
+# log
+log_file = "default"

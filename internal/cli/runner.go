@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	osuser "os/user"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 
@@ -33,15 +34,23 @@ func run(cmd *cobra.Command, args []string) {
 	// Load config
 	cfg := getConfig()
 
-	logger.InitLogger(opts.Debug, "logs/pgxcli.log")
+	logFilePath := cfg.Main.LogFile
+	if logFilePath == "default" {
+		configPath, _ := config.GetConfigDir()
+		logFilePath = filepath.Join(configPath, "pgxcli.log")
+	}
+
+	logger.InitLogger(opts.Debug, logFilePath)
 
 	postgres := database.New()
+	defer postgres.Close(ctx)
 
 	app := pgxCLI{
 		config: cfg,
 		client: postgres,
 		repl:   repl.New(postgres, cfg),
 	}
+	defer app.close(ctx)
 
 	if user == "" {
 		user = os.Getenv("PGUSER")
@@ -57,7 +66,7 @@ func run(cmd *cobra.Command, args []string) {
 	if dbName == "" {
 		dbName = user
 	}
-
+	
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt)
 
@@ -88,8 +97,10 @@ func getConfig() *config.Config {
 	if exists {
 		userCfg, err := config.LoadConfig(configPath)
 		if err == nil {
-			fmt.Fprintf(os.Stderr, "unable to load user configuration\nerr:%v", err)
 			cfg = userCfg
+			} else {
+				
+				fmt.Fprintf(os.Stderr, "unable to load user configuration\nerr:%v", err)
 		}
 	} else {
 		err := config.SaveConfig(configPath)

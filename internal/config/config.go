@@ -23,12 +23,14 @@ type Config struct {
 type main struct {
 	Prompt      string `toml:"prompt"`
 	HistoryFile string `toml:"history_file"`
+	LogFile string `toml:"log_file"`
 }
 
 var DefaultConfig = Config{
 	Main: main{
 		Prompt:      `\u@\h:\d> `,
 		HistoryFile: "default",
+		LogFile: "default", 
 	},
 }
 

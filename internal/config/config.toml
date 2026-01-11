@@ -7,8 +7,8 @@
 # \d - Database name
 # \p - Database port
 # \n - Newline
-prompt = '\u@\h:\d> '
+prompt = "\\u@\\h:\\d> "
 
 
 # history
-history_file = default
+history_file = "default"

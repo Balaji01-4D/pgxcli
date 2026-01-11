@@ -1,6 +1,7 @@
 package config
 
 import (
+	_ "embed"
 	"os"
 	"path/filepath"
 
@@ -11,6 +12,9 @@ const (
 	Default  = "default"
 	filename = "config.toml"
 )
+
+//go:embed config.toml
+var config []byte
 
 type Config struct {
 	Main main `toml:"main"`
@@ -51,15 +55,12 @@ func CheckConfigExists(configDir string) (string, bool) {
 	return path, true
 }
 
-func SaveConfig(path string, cfg Config) error {
+func SaveConfig(path string) error {
 	dir := filepath.Dir(path)
-	os.MkdirAll(dir, os.ModePerm)
-	f, err := os.Create(filepath.Join(dir, filename))
+	err := os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
 
-	enc := toml.NewEncoder(f)
-	return enc.Encode(cfg)
+	return os.WriteFile(path, config, 0644)
 }

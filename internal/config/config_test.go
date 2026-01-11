@@ -38,16 +38,11 @@ func TestSaveConfig(t *testing.T) {
 	tempDir := t.TempDir()
 	configPath := path.Join(tempDir, "config.toml")
 
-	cfg := Config{
-		Main: main{
-			Prompt:      "\\u@\\h:\\d> ",
-			HistoryFile: "default",
-		},
-	}
-
-	err := SaveConfig(configPath, cfg)
+	err := SaveConfig(configPath)
 	assert.NoError(t, err)
+
 	loadedCfg, err := LoadConfig(configPath)
 	assert.NoError(t, err)
-	assert.Equal(t, cfg.Main.Prompt, loadedCfg.Main.Prompt)
+
+	assert.Equal(t, "default", loadedCfg.Main.HistoryFile)
 }

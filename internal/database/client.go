@@ -37,7 +37,8 @@ func (c *Client) Connect(ctx context.Context, connector Connector) error {
 }
 
 func (c *Client) ExecuteSpecial(ctx context.Context,
-	command string) (pgxspecial.SpecialCommandResult, bool, error) {
+	command string,
+) (pgxspecial.SpecialCommandResult, bool, error) {
 	result, okay, err := pgxspecial.ExecuteSpecialCommand(ctx, c.Executor.Conn, command)
 	logger.Log.Info("Executed special command", "command", command, "result", result, "okay", okay, "err", err)
 	return result, okay, err

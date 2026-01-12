@@ -49,7 +49,6 @@ func registerSpecialCommands() {
 		},
 		CaseSensitive: false,
 	})
-
 }
 
 type ExitAction struct{}

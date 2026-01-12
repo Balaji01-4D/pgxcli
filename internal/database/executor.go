@@ -91,7 +91,6 @@ func (e *Executor) exec(ctx context.Context, sql string, args ...any) (*ExecResu
 		Status:       tag.String(),
 		Duration:     dur,
 	}, nil
-
 }
 
 // Execute method to determine whether to run query or exec based on SQL type

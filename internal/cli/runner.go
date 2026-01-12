@@ -66,7 +66,7 @@ func run(cmd *cobra.Command, args []string) {
 	if dbName == "" {
 		dbName = user
 	}
-	
+
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt)
 
@@ -84,8 +84,6 @@ func run(cmd *cobra.Command, args []string) {
 	app.close(ctx)
 }
 
-
-
 func getConfig() *config.Config {
 	cfg := config.DefaultConfig
 	configDir, err := config.GetConfigDir()
@@ -98,9 +96,8 @@ func getConfig() *config.Config {
 		userCfg, err := config.LoadConfig(configPath)
 		if err == nil {
 			cfg = userCfg
-			} else {
-				
-				fmt.Fprintf(os.Stderr, "unable to load user configuration\nerr:%v", err)
+		} else {
+			fmt.Fprintf(os.Stderr, "unable to load user configuration\nerr:%v", err)
 		}
 	} else {
 		err := config.SaveConfig(configPath)

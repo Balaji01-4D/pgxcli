@@ -26,7 +26,7 @@ func (p *pgxCLI) start(ctx context.Context, db, user string) error {
 	if strings.Contains(db, "://") || strings.Contains(db, "=") {
 		connector, err = postgres.NewPGConnectorFromConnString(db)
 		if err != nil {
-			return fmt.Errorf("Invalid connection string: %w", err)
+			return fmt.Errorf("invalid connection string: %w", err)
 		}
 	} else {
 		var password string
@@ -38,7 +38,7 @@ func (p *pgxCLI) start(ctx context.Context, db, user string) error {
 		if opts.ForcePrompt && password == "" {
 			pwd, err := p.repl.ReadPassword()
 			if err != nil {
-				return fmt.Errorf("Failed to read password: %w", err)
+				return fmt.Errorf("failed to read password: %w", err)
 			}
 			password = pwd
 		}
@@ -51,7 +51,7 @@ func (p *pgxCLI) start(ctx context.Context, db, user string) error {
 			opts.Port,
 		)
 		if err != nil {
-			return fmt.Errorf("Failed to create connector: %w", err)
+			return fmt.Errorf("failed to create connector: %w", err)
 		}
 	}
 
@@ -60,7 +60,7 @@ func (p *pgxCLI) start(ctx context.Context, db, user string) error {
 		if shouldAskForPassword(ConnErr, opts.NeverPrompt) {
 			pwd, err := p.repl.ReadPassword()
 			if err != nil {
-				return fmt.Errorf("Failed to read password: %v", err)
+				return fmt.Errorf("failed to read password: %v", err)
 			}
 			connector.UpdatePassword(pwd)
 			ConnErr = p.client.Connect(ctx, connector)
@@ -73,7 +73,7 @@ func (p *pgxCLI) start(ctx context.Context, db, user string) error {
 	}
 
 	if !p.client.IsConnected() {
-		return fmt.Errorf("Not connected to any database")
+		return fmt.Errorf("not connected to any database")
 	}
 
 	p.repl.Run(ctx)

@@ -35,6 +35,10 @@ func EchoViaPager(writeFn func(io.Writer) error) error {
 	return writeFn(stdout)
 }
 
+func terminalChecker(stdin *os.File, stdout *os.File) bool {
+	return !term.IsTerminal(int(stdin.Fd())) || !term.IsTerminal(int(stdout.Fd()))
+}
+
 func tryPipePager(pagerCmd []string, writeFn func(io.Writer) error) bool {
 	cmdPath, err := exec.LookPath(pagerCmd[0])
 	if err != nil {
@@ -88,9 +92,13 @@ func tryTempfilePager(pagerCmd []string, writerFn func(io.Writer) error) bool {
 	return cmd.Run() == nil
 }
 
-func waitIgnoringInterrupt(cmd *exec.Cmd) error {
+type waiter interface {
+	Wait() error
+}
+
+func waitIgnoringInterrupt(w waiter) error {
 	for {
-		err := cmd.Wait()
+		err := w.Wait()
 		if err == nil {
 			return nil
 		}

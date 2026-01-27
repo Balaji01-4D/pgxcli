@@ -35,10 +35,6 @@ func EchoViaPager(writeFn func(io.Writer) error) error {
 	return writeFn(stdout)
 }
 
-func terminalChecker(stdin *os.File, stdout *os.File) bool {
-	return !term.IsTerminal(int(stdin.Fd())) || !term.IsTerminal(int(stdout.Fd()))
-}
-
 func tryPipePager(pagerCmd []string, writeFn func(io.Writer) error) bool {
 	cmdPath, err := exec.LookPath(pagerCmd[0])
 	if err != nil {

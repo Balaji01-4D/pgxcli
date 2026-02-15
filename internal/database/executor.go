@@ -3,16 +3,31 @@ package database
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
-	"github.com/balaji01-4d/pgxcli/internal/logger"
 	"github.com/balaji01-4d/pgxcli/internal/parser"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type Result interface {
 	isResult()
+}
+
+type CommandTag interface {
+	RowsAffected() int64
+	String() string
+}
+
+type Conn interface {
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
+	Config() *pgx.ConnConfig
+	Ping(ctx context.Context) error
+	Close(ctx context.Context) error
 }
 
 // executor struct to execute queries
@@ -24,10 +39,12 @@ type Executor struct {
 	User     string
 	Password string
 	URI      string
-	Conn     *pgx.Conn
+	Conn     Conn
+
+	Logger *slog.Logger
 }
 
-func NewExecutor(ctx context.Context, c Connector) (*Executor, error) {
+func NewExecutor(ctx context.Context, c Connector, logger *slog.Logger) (*Executor, error) {
 	conn, err := c.Connect(ctx)
 	if err != nil {
 		return nil, err
@@ -35,7 +52,7 @@ func NewExecutor(ctx context.Context, c Connector) (*Executor, error) {
 
 	err = conn.Ping(ctx)
 	if err != nil {
-		logger.Log.Error("Connection ping failed", "error", err)
+		logger.Error("Connection ping failed", "error", err)
 		return nil, err
 	}
 
@@ -47,16 +64,17 @@ func NewExecutor(ctx context.Context, c Connector) (*Executor, error) {
 		Password: conn.Config().Password,
 		URI:      conn.Config().ConnString(),
 		Conn:     conn,
+		Logger:   logger,
 	}, nil
 }
 
 // For executing queries like SELECT, SHOW etc.
 func (e *Executor) query(ctx context.Context, sql string, args ...any) (*QueryResult, error) {
-	logger.Log.Debug("Executing query", "sql", sql)
+	e.Logger.Debug("Executing query", "sql", sql)
 	start := time.Now()
 	rows, err := e.Conn.Query(ctx, sql, args...)
 	if err != nil {
-		logger.Log.Error("Query failed", "error", err, "sql", sql)
+		e.Logger.Error("Query failed", "error", err, "sql", sql)
 		return nil, err
 	}
 	dur := time.Since(start)
@@ -65,7 +83,7 @@ func (e *Executor) query(ctx context.Context, sql string, args ...any) (*QueryRe
 	for i, fd := range fds {
 		columns[i] = fd.Name
 	}
-	logger.Log.Info("Query completed", "duration_ms", dur.Milliseconds(), "columns", len(columns))
+	e.Logger.Info("Query completed", "duration_ms", dur.Milliseconds(), "columns", len(columns))
 	return &QueryResult{
 		rowStreamer: rowStreamer{
 			rows:     rows,
@@ -77,15 +95,15 @@ func (e *Executor) query(ctx context.Context, sql string, args ...any) (*QueryRe
 
 // For executing commands like INSERT, UPDATE, DELETE etc.
 func (e *Executor) exec(ctx context.Context, sql string, args ...any) (*ExecResult, error) {
-	logger.Log.Debug("Executing command", "sql", sql)
+	e.Logger.Debug("Executing command", "sql", sql)
 	start := time.Now()
 	tag, err := e.Conn.Exec(ctx, sql, args...)
 	if err != nil {
-		logger.Log.Error("Command failed", "error", err, "sql", sql)
+		e.Logger.Error("Command failed", "error", err, "sql", sql)
 		return nil, err
 	}
 	dur := time.Since(start)
-	logger.Log.Info("Command completed", "duration_ms", dur.Milliseconds(), "rows_affected", tag.RowsAffected(), "status", tag.String())
+	e.Logger.Info("Command completed", "duration_ms", dur.Milliseconds(), "rows_affected", tag.RowsAffected(), "status", tag.String())
 	return &ExecResult{
 		RowsAffected: tag.RowsAffected(),
 		Status:       tag.String(),

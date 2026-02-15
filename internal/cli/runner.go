@@ -39,10 +39,9 @@ func run(cmd *cobra.Command, args []string) {
 		configPath, _ := config.GetConfigDir()
 		logFilePath = filepath.Join(configPath, "pgxcli.log")
 	}
+	logger := logger.InitLogger(opts.Debug, logFilePath)
 
-	logger.InitLogger(opts.Debug, logFilePath)
-
-	postgres := database.New()
+	postgres := database.New(logger)
 	defer postgres.Close(ctx)
 
 	app := pgxCLI{

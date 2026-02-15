@@ -5,9 +5,7 @@ import (
 	"os"
 )
 
-var Log *slog.Logger
-
-func InitLogger(debug bool, filename string) {
+func InitLogger(debug bool, filename string) *slog.Logger {
 	opts := &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	}
@@ -21,5 +19,5 @@ func InitLogger(debug bool, filename string) {
 
 	handler := slog.NewTextHandler(file, opts)
 
-	Log = slog.New(handler)
+	return slog.New(handler)
 }

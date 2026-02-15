@@ -3,10 +3,10 @@ package database
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
-	"github.com/balaji01-4d/pgxcli/internal/logger"
 	"github.com/balaji01-4d/pgxspecial"
 )
 
@@ -15,23 +15,26 @@ type Client struct {
 	Executor  *Executor
 
 	now time.Time
+
+	Logger *slog.Logger
 }
 
-func New() *Client {
+func New(logger *slog.Logger) *Client {
 	postgres := &Client{
 		now: time.Now(),
+		Logger: logger,
 	}
 	return postgres
 }
 
 func (c *Client) Connect(ctx context.Context, connector Connector) error {
-	exec, err := NewExecutor(ctx, connector)
+	exec, err := NewExecutor(ctx, connector, c.Logger)
 	if err != nil {
 		return err
 	}
 	c.Executor = exec
 	c.CurrentDB = exec.Database
-	logger.Log.Info("Database connection established", "database", exec.Database, "user", exec.User)
+	c.Logger.Info("Database connection established", "database", exec.Database, "user", exec.User)
 
 	return nil
 }
@@ -40,7 +43,7 @@ func (c *Client) ExecuteSpecial(ctx context.Context,
 	command string,
 ) (pgxspecial.SpecialCommandResult, bool, error) {
 	result, okay, err := pgxspecial.ExecuteSpecialCommand(ctx, c.Executor.Conn, command)
-	logger.Log.Info("Executed special command", "command", command, "result", result, "okay", okay, "err", err)
+	c.Logger.Info("Executed special command", "command", command, "result", result, "okay", okay, "err", err)
 	return result, okay, err
 }
 
@@ -68,13 +71,14 @@ func (c *Client) ChangeDatabase(ctx context.Context, dbName string) error {
 	exec, err := NewExecutor(
 		ctx,
 		connector,
+		c.Logger,
 	)
 	if err != nil {
 		return err
 	}
 	c.Executor = exec
 	c.CurrentDB = dbName
-	logger.Log.Info("Database changed", "database", dbName)
+	c.Logger.Info("Database changed", "database", dbName)
 
 	return nil
 }
@@ -127,17 +131,6 @@ func (c *Client) GetPort() uint16 {
 
 func (c *Client) GetHost() string {
 	return c.Executor.Host
-}
-
-func (c *Client) GetConnectionInfo() {
-	logger.Log.Debug("Connection information",
-		"connection string", c.Executor.Conn.Config().ConnString(),
-		"host", c.Executor.Host,
-		"Port", c.Executor.Port,
-		"Database", c.Executor.Database,
-		"User", c.Executor.User,
-		"URI", c.Executor.URI,
-	)
 }
 
 func (c *Client) Close(ctx context.Context) {

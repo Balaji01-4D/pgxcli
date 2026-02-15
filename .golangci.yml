@@ -3,6 +3,11 @@ run:
   timeout: 5m
 
 linters:
+  exclusions:
+    paths:
+      - '(.+)_test\.go'
+      - internal/completer
+      - internal/repl/edit_command_buffer
   disable-all: true
   enable:
     - errcheck

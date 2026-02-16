@@ -47,7 +47,7 @@ func run(cmd *cobra.Command, args []string) {
 	app := pgxCLI{
 		config: cfg,
 		client: postgres,
-		repl:   repl.New(postgres, cfg),
+		repl:   repl.New(postgres, cfg, logger),
 	}
 	defer app.close(ctx)
 

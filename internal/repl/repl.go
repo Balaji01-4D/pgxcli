@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"strconv"
 	"strings"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/balaji01-4d/pgxcli/internal/config"
 	"github.com/balaji01-4d/pgxcli/internal/database"
-	"github.com/balaji01-4d/pgxcli/internal/logger"
 	render "github.com/balaji01-4d/pgxcli/internal/repl/renderer"
 	"github.com/balaji01-4d/pgxspecial"
 	"github.com/elk-language/go-prompt"
@@ -48,10 +48,11 @@ type Repl struct {
 	history *history
 	client  Client
 	config  *config.Config
+	logger *slog.Logger
 }
 
-func New(client Client, cfg *config.Config) *Repl {
-	repl := &Repl{client: client, config: cfg}
+func New(client Client, cfg *config.Config, logger *slog.Logger) *Repl {
+	repl := &Repl{client: client, config: cfg, logger: logger}
 	repl.history = newHistory(cfg.Main.HistoryFile)
 	return repl
 }
@@ -108,7 +109,7 @@ func (r *Repl) Run(ctx context.Context) {
 
 		metaResult, okay, err := r.client.ExecuteSpecial(ctx, query)
 		if err != nil {
-			logger.Log.Error("Error executing special command", "err", err)
+			r.logger.Error("Error executing special command", "err", err)
 			r.PrintError(err)
 			continue
 		}
@@ -205,7 +206,7 @@ func (r *Repl) handleSpecialCommand(ctx context.Context, metaResult pgxspecial.S
 	case pgxspecial.ResultKindDescribeTable:
 		tables, err := render.RenderDescribeTableResult(metaResult)
 		if err != nil {
-			logger.Log.Error("Error rendering describe table result", "err", err)
+			r.logger.Error("Error rendering describe table result", "err", err)
 			return "", false, err
 		}
 		return render.RenderTables(tables, table.StyleBold), false, nil

@@ -16,7 +16,7 @@ import (
 	"github.com/balaji01-4d/pgxcli/internal/repl"
 )
 
-func run(cmd *cobra.Command, args []string) {
+func run(_ *cobra.Command, args []string) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -87,7 +87,7 @@ func getConfig() *config.Config {
 	cfg := config.DefaultConfig
 	configDir, err := config.GetConfigDir()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "unable to get configuartion directory, using the default configuration\n")
+		fmt.Fprintf(os.Stderr, "unable to get configuration directory, using the default configuration\n")
 	}
 
 	configPath, exists := config.CheckConfigExists(configDir)

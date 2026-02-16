@@ -12,6 +12,7 @@ import (
 
 	"github.com/balaji01-4d/pgxcli/internal/config"
 	"github.com/balaji01-4d/pgxcli/internal/database"
+	"github.com/balaji01-4d/pgxcli/internal/repl/commands"
 	render "github.com/balaji01-4d/pgxcli/internal/repl/renderer"
 	"github.com/balaji01-4d/pgxspecial"
 	"github.com/elk-language/go-prompt"
@@ -30,6 +31,10 @@ const (
 	DefaultPrompt = `\u@\h:\d> `
 	MaxLenPrompt  = 30
 )
+
+var builtinsCommand = map[string] func () {
+	"clear": commands.ClearScreen,
+}
 
 type Client interface {
 	GetUser() string
@@ -107,6 +112,12 @@ func (r *Repl) Run(ctx context.Context) {
 		}
 		start := time.Now()
 
+
+		if cmd, ok := builtinsCommand[query]; ok {
+			cmd()
+			continue
+		}
+		
 		metaResult, okay, err := r.client.ExecuteSpecial(ctx, query)
 		if err != nil {
 			r.logger.Error("Error executing special command", "err", err)

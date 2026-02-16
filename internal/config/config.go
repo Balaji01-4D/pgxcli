@@ -9,6 +9,7 @@ import (
 )
 
 const (
+	// default stores the default value
 	Default  = "default"
 	filename = "config.toml"
 )
@@ -16,6 +17,7 @@ const (
 //go:embed config.toml
 var config []byte
 
+// config represents the high level configuration
 type Config struct {
 	Main main `toml:"main"`
 }
@@ -26,14 +28,16 @@ type main struct {
 	LogFile string `toml:"log_file"`
 }
 
+// default configuration
 var DefaultConfig = Config{
 	Main: main{
 		Prompt:      `\u@\h:\d> `,
-		HistoryFile: "default",
-		LogFile: "default", 
+		HistoryFile: Default,
+		LogFile: Default, 
 	},
 }
 
+// returns the configuration directory or error, example: ~/.config/pgxcli
 func GetConfigDir() (string, error) {
 	userdir, err := os.UserConfigDir()
 	if err != nil {
@@ -42,12 +46,14 @@ func GetConfigDir() (string, error) {
 	return filepath.Join(userdir, "pgxcli"), nil
 }
 
+// loads the configuration in the provided path
 func LoadConfig(path string) (config Config, err error) {
 	var cfg Config
 	_, err = toml.DecodeFile(path, &cfg)
 	return cfg, err
 }
 
+// ensures the configuration exists in the given directory
 func CheckConfigExists(configDir string) (string, bool) {
 	path := filepath.Join(configDir, filename)
 	_, err := os.Stat(path)
@@ -57,6 +63,7 @@ func CheckConfigExists(configDir string) (string, bool) {
 	return path, true
 }
 
+// used to save the default configuration when default configuration doesn't exist
 func SaveConfig(path string) error {
 	dir := filepath.Dir(path)
 	err := os.MkdirAll(dir, os.ModePerm)

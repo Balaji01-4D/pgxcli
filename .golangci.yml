@@ -1,19 +1,14 @@
-version: 2
+version: "2"
+
 run:
   timeout: 5m
 
 linters:
-  exclusions:
-    paths:
-      - '(.+)_test\.go'
-      - internal/completer
-      - internal/repl/edit_command_buffer
-  disable-all: true
   enable:
     - errcheck
     - ineffassign
     - staticcheck
-    - unused 
+    - unused
     - gocyclo
     - goconst
     - misspell
@@ -21,12 +16,22 @@ linters:
     - unparam
     - revive
 
-linters-settings:
+  exclusions:
+    paths:
+      - '(.+)_test\.go'
+      - internal/completer
+      - internal/repl/edit_command_buffer
+
+settings:
   gocyclo:
     min-complexity: 15
+
+  misspell:
+    locale: US
+
   revive:
-    confidence: 0.8
     severity: warning
+    confidence: 0.8
     rules:
       - name: exported
       - name: blank-imports
@@ -47,10 +52,7 @@ linters-settings:
       - name: unexported-return
       - name: indent-error-flow
       - name: errorf
-  misspell:
-    locale: US
 
 issues:
-  exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0

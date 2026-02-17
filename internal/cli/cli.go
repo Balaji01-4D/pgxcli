@@ -36,7 +36,7 @@ func (p *pgxCLI) start(ctx context.Context, db, user string) error {
 		}
 
 		if opts.ForcePrompt && password == "" {
-			pwd, err := p.repl.ReadPassword()
+			pwd, err := p.repl.ReadPassword(user)
 			if err != nil {
 				return fmt.Errorf("failed to read password: %w", err)
 			}
@@ -58,7 +58,7 @@ func (p *pgxCLI) start(ctx context.Context, db, user string) error {
 	ConnErr := p.client.Connect(ctx, connector)
 	if ConnErr != nil {
 		if shouldAskForPassword(ConnErr, opts.NeverPrompt) {
-			pwd, err := p.repl.ReadPassword()
+			pwd, err := p.repl.ReadPassword(user)
 			if err != nil {
 				return fmt.Errorf("failed to read password: %v", err)
 			}

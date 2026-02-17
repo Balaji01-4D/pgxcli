@@ -70,8 +70,8 @@ func (r *Repl) Read(prefix string) string {
 	return text
 }
 
-func (r *Repl) ReadPassword() (string, error) {
-	r.Print("Enter the password: ")
+func (r *Repl) ReadPassword(user string) (string, error) {
+	r.Print(fmt.Sprintf("Password for %s: ", user))
 	pass, err := term.ReadPassword(int(os.Stdin.Fd()))
 	if err != nil {
 		return "", err

@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	osuser "os/user"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -60,6 +61,9 @@ func run(_ *cobra.Command, args []string) {
 				os.Exit(1)
 			}
 			user = currentUser.Username
+			if strings.Contains(user, "\\") {
+				user = user[strings.LastIndex(user, "\\")+1:]
+			}
 		}
 	}
 	if dbName == "" {

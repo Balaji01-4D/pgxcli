@@ -63,9 +63,9 @@ func (p *pgxCLI) start(ctx context.Context, db, user string) error {
 				return fmt.Errorf("failed to read password: %v", err)
 			}
 			connector.UpdatePassword(pwd)
-			ConnErr = p.client.Connect(ctx, connector)
-			if ConnErr != nil {
-				return err
+			ConnRetryErr := p.client.Connect(ctx, connector)
+			if ConnRetryErr != nil {
+				return ConnRetryErr 
 			}
 		} else {
 			return ConnErr

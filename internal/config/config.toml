@@ -15,3 +15,17 @@ history_file = "default"
 
 # log
 log_file = "default"
+
+# style
+# Available:
+#   monokai
+#   dracula
+#   github-dark
+#   gruvbox
+#   nord
+#   onedark
+#   solarized-dark
+#   solarized-light
+#   tokyonight-night
+#   catppuccin-mocha
+style = "monokai"

@@ -26,6 +26,7 @@ type main struct {
 	Prompt      string `toml:"prompt"`
 	HistoryFile string `toml:"history_file"`
 	LogFile string `toml:"log_file"`
+	Style   string `toml:"style"`
 }
 
 // default configuration

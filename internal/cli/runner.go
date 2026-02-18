@@ -45,10 +45,16 @@ func run(_ *cobra.Command, args []string) {
 	postgres := database.New(logger)
 	defer postgres.Close(ctx)
 
+	r, err := repl.New(postgres, cfg, logger)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
 	app := pgxCLI{
 		config: cfg,
 		client: postgres,
-		repl:   repl.New(postgres, cfg, logger),
+		repl:  	r,
 	}
 	defer app.close(ctx)
 

@@ -15,9 +15,9 @@ import (
 	"github.com/balaji01-4d/pgxcli/internal/repl/commands"
 	render "github.com/balaji01-4d/pgxcli/internal/repl/renderer"
 	"github.com/balaji01-4d/pgxspecial"
-	"github.com/elk-language/go-prompt"
 	"github.com/fatih/color"
 	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/jedib0t/go-prompter/prompt"
 	"golang.org/x/term"
 )
 
@@ -30,6 +30,11 @@ var (
 const (
 	DefaultPrompt = `\u@\h:\d> `
 	MaxLenPrompt  = 30
+)
+
+const (
+	language = "PostgreSQL SQL dialect"
+	formatter = "terminal256"
 )
 
 var builtinsCommand = map[string] func () {
@@ -54,18 +59,23 @@ type Repl struct {
 	client  Client
 	config  *config.Config
 	logger *slog.Logger
+	prompt prompt.Prompter
 }
 
-func New(client Client, cfg *config.Config, logger *slog.Logger) *Repl {
-	repl := &Repl{client: client, config: cfg, logger: logger}
+func New(client Client, cfg *config.Config, logger *slog.Logger) (*Repl, error) {
+	p, err := prompt.New()
+	if err != nil {
+		return nil, err
+	}
+
+	repl := &Repl{client: client, config: cfg, logger: logger, prompt: p}
 	repl.history = newHistory(cfg.Main.HistoryFile)
-	return repl
+	return repl, nil
 }
 
-func (r *Repl) Read(prefix string) string {
-	text := prompt.Input(
-		r.getPromptOptions(prefix)...,
-	)
+func (r *Repl) Read(ctx context.Context, prefix string) string {
+	r.prompt.SetPrefix(prefix)
+	text, _ := r.prompt.Prompt(ctx)
 	r.history.append(text)
 	return text
 }
@@ -101,11 +111,18 @@ func (r *Repl) PrintViaPager(output string) {
 }
 
 func (r *Repl) Run(ctx context.Context) {
+	err := SetSyntaxHighlighter(r.prompt, r.config.Main.Style)
+	if err != nil {
+		r.PrintError(err)
+		return 
+	}
+	setAutoCompleter(r.prompt)
+
 	r.history.loadHistory()
 
 	for {
 		suffixStr := r.client.ParsePrompt(r.config.Main.Prompt)
-		query := r.Read(suffixStr)
+		query := r.Read(ctx, suffixStr)
 
 		if strings.TrimSpace(query) == "" {
 			continue
@@ -234,15 +251,29 @@ func (r *Repl) handleSpecialCommand(ctx context.Context, metaResult pgxspecial.S
 	}
 }
 
-func (r *Repl) getPromptOptions(prefix string) []prompt.Option {
-	return []prompt.Option{
-		prompt.WithPrefix(prefix),
-		prompt.WithHistory(r.history.entries),
-		prompt.WithTitle("pgxcli"),
-		prompt.WithHistorySize(100),
-	}
-}
+// func (r *Repl) getPromptOptions(prefix string) []prompt.Option {
+// 	return []prompt.Option{
+// 		prompt.WithPrefix(prefix),
+// 		prompt.WithHistory(r.history.entries),
+// 		prompt.WithTitle("pgxcli"),
+// 		prompt.WithHistorySize(100),
+// 	}
+// }
+
 
 func (r *Repl) Close() {
 	r.history.saveHistory()
+}
+
+func SetSyntaxHighlighter(p prompt.Prompter, theme string) error {
+	h, err := prompt.SyntaxHighlighterChroma(language, formatter, theme)
+	if err != nil {
+		return err
+	}
+	p.SetSyntaxHighlighter(h)
+	return nil
+}
+
+func setAutoCompleter(p prompt.Prompter) {
+	p.SetAutoCompleter(prompt.AutoCompleteSQLKeywords())
 }

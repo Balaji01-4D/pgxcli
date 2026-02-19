@@ -73,3 +73,21 @@ func SaveConfig(path string) error {
 
 	return os.WriteFile(path, config, 0644)
 }
+
+
+func MergeConfig(defaultConfig, userConfig Config) Config {
+	mergedConfig := defaultConfig
+
+	setIfNotEmpty := func(defaultValue, userValue string) string {
+		if userValue != "" {
+			return userValue
+		}
+		return defaultValue
+	}
+	
+	mergedConfig.Main.Prompt = setIfNotEmpty(defaultConfig.Main.Prompt, userConfig.Main.Prompt)
+	mergedConfig.Main.HistoryFile = setIfNotEmpty(defaultConfig.Main.HistoryFile, userConfig.Main.HistoryFile)
+	mergedConfig.Main.LogFile = setIfNotEmpty(defaultConfig.Main.LogFile, userConfig.Main.LogFile)
+
+	return mergedConfig
+}

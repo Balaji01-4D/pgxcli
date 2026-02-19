@@ -26,7 +26,7 @@ type Config struct {
 type main struct {
 	Prompt      string `toml:"prompt"`
 	HistoryFile string `toml:"history_file"`
-	LogFile string `toml:"log_file"`
+	LogFile     string `toml:"log_file"`
 }
 
 // default configuration
@@ -73,9 +73,8 @@ func SaveConfig(path string) error {
 		return err
 	}
 
-	return os.WriteFile(path, defaultConfigFile, 0644)
+	return os.WriteFile(path, defaultConfigFile, 0o644)
 }
-
 
 func MergeConfig(defaultConfig, userConfig Config) Config {
 	mergedConfig := defaultConfig
@@ -86,7 +85,7 @@ func MergeConfig(defaultConfig, userConfig Config) Config {
 		}
 		return defaultValue
 	}
-	
+
 	mergedConfig.Main.Prompt = setIfNotEmpty(defaultConfig.Main.Prompt, userConfig.Main.Prompt)
 	mergedConfig.Main.HistoryFile = setIfNotEmpty(defaultConfig.Main.HistoryFile, userConfig.Main.HistoryFile)
 	mergedConfig.Main.LogFile = setIfNotEmpty(defaultConfig.Main.LogFile, userConfig.Main.LogFile)

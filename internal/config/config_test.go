@@ -21,7 +21,7 @@ func TestLoadConfig_ValidConfig(t *testing.T) {
 	content, err := toml.Marshal(expectedCfg)
 	assert.NoError(t, err)
 
-	writeErr := os.WriteFile(configPath, content, 0644)
+	writeErr := os.WriteFile(configPath, content, 0o644)
 	assert.NoError(t, writeErr)
 
 	actualCfg, err := LoadConfig(configPath)

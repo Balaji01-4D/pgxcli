@@ -15,7 +15,7 @@ const (
 )
 
 //go:embed config.toml
-var config []byte
+var defaultConfigFile []byte
 
 // config represents the high level configuration
 type Config struct {
@@ -71,7 +71,7 @@ func SaveConfig(path string) error {
 		return err
 	}
 
-	return os.WriteFile(path, config, 0644)
+	return os.WriteFile(path, defaultConfigFile, 0644)
 }
 
 

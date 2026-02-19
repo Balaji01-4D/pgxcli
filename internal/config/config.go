@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bytes"
 	_ "embed"
 	"os"
 	"path/filepath"
@@ -29,12 +30,13 @@ type main struct {
 }
 
 // default configuration
-var DefaultConfig = Config{
-	Main: main{
-		Prompt:      `\u@\h:\d> `,
-		HistoryFile: Default,
-		LogFile: Default, 
-	},
+var DefaultConfig Config
+
+func init() {
+	_, err := toml.NewDecoder(bytes.NewReader(defaultConfigFile)).Decode(&DefaultConfig)
+	if err != nil {
+		panic(err)
+	}
 }
 
 // returns the configuration directory or error, example: ~/.config/pgxcli

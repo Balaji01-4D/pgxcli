@@ -229,3 +229,19 @@ func TestExecutor_ping_Error(t *testing.T) {
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "database not connected")
 }
+
+
+func TestExecutor_IsConnected(t *testing.T) {
+	ctx := context.Background()
+
+	conn := new(MockConn)
+	conn.On("Ping", ctx).Return(nil)
+
+	executor := &Executor{
+		Conn: conn,
+		Logger: slog.Default(),
+	}
+
+	assert.True(t, executor.IsConnected())
+	conn.AssertExpectations(t)
+}

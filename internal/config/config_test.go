@@ -46,3 +46,133 @@ func TestSaveConfig(t *testing.T) {
 
 	assert.Equal(t, "default", loadedCfg.Main.HistoryFile)
 }
+
+func TestMergeConfig(t *testing.T) {
+
+	testCase := []struct {
+		name       string
+		baseCfg    Config
+		overrideCfg Config
+		expectedCfg Config
+	}{
+		{
+			name: "override history file",
+			baseCfg: Config{
+				Main: main{
+					Prompt:      "\\u@\\h:\\d> ",
+					HistoryFile: "default",
+					LogFile:     "default",
+				},
+			},
+			overrideCfg: Config{
+				Main: main{
+					Prompt:      "\\u@\\h:\\d> ",
+					HistoryFile: "custom_history.txt",
+				},
+			},
+			expectedCfg: Config{
+				Main: main{
+					Prompt:      "\\u@\\h:\\d> ",
+					HistoryFile: "custom_history.txt",
+					LogFile:     "default",
+				},
+			},
+		},
+		{
+			name: "override log file",
+			baseCfg: Config{
+				Main: main{
+					Prompt:      "\\u@\\h:\\d> ",
+					HistoryFile: "default",
+					LogFile:     "default",
+				},
+			},
+			overrideCfg: Config{
+				Main: main{
+					Prompt:  "\\u@\\h:\\d> ",
+					LogFile: "custom_log.txt",
+				},
+			},
+			expectedCfg: Config{
+				Main: main{
+					Prompt:      "\\u@\\h:\\d> ",
+					HistoryFile: "default",
+					LogFile:     "custom_log.txt",
+				},
+			},
+		},
+		{
+			name: "override prompt",
+			baseCfg: Config{
+				Main: main{
+					Prompt:      "\\u@\\h:\\d> ",
+					HistoryFile: "default",
+					LogFile:     "default",
+				},
+			},
+			overrideCfg: Config{
+				Main: main{
+					Prompt: "\\u@\\h:\\d$ ",
+				},
+			},
+			expectedCfg: Config{
+				Main: main{
+					Prompt:      "\\u@\\h:\\d$ ",
+					HistoryFile: "default",
+					LogFile:     "default",
+				},
+			},
+		},
+		{
+			name: "no override",
+			baseCfg: Config{
+				Main: main{
+					Prompt:      "\\u@\\h:\\d> ",
+					HistoryFile: "default",
+					LogFile:     "default",
+				},
+			},
+			overrideCfg: Config{},
+			expectedCfg: Config{
+				Main: main{
+					Prompt:      "\\u@\\h:\\d> ",
+					HistoryFile: "default",
+					LogFile:     "default",
+				},
+			},	
+		},
+		{
+			name: "override all fields",
+			baseCfg: Config{
+				Main: main{
+					Prompt:      "\\u@\\h:\\d> ",
+					HistoryFile: "default",
+					LogFile:     "default",
+				},
+			},
+			overrideCfg: Config{
+				Main: main{
+					Prompt:      "\\u@\\h:\\d$ ",
+					HistoryFile: "custom_history.txt",
+					LogFile:     "custom_log.txt",
+				},
+			},
+			expectedCfg: Config{
+				Main: main{
+					Prompt:      "\\u@\\h:\\d$ ",
+					HistoryFile: "custom_history.txt",
+					LogFile:     "custom_log.txt",
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCase {
+		t.Run(tc.name, func(t *testing.T) {
+			resultCfg := MergeConfig(tc.baseCfg, tc.overrideCfg)
+			assert.Equal(t, tc.expectedCfg.Main.Prompt, resultCfg.Main.Prompt)
+			assert.Equal(t, tc.expectedCfg.Main.HistoryFile, resultCfg.Main.HistoryFile)
+			assert.Equal(t, tc.expectedCfg.Main.LogFile, resultCfg.Main.LogFile)
+		})
+	}
+}

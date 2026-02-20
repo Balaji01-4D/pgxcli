@@ -1,61 +1,114 @@
 # pgxcli
 
+pgxcli is a modern, interactive command-line client for PostgreSQL, written in Go. It aims to provide a rich user experience with features like autocompletion, syntax highlighting, and smart command history.
 
-Excellent, that's a great start. The structure you have is clean and follows the standard Go project layout convention of separating commands from internal library code.
+> **NOTE:** `pgxcli` is currently in active development. The upcoming first release will feature basic syntax highlighting and word-based suggestions. Advanced features like context-aware autocompletion and further quality improvements are planned for future releases.
 
-Based on the features we discussed (`cobra`, `pgx`, `go-prompt`, `chroma`), I would recommend expanding your structure to give each major component its own dedicated package within `internal`. This will help keep your code organized and maintainable as the project grows.
+## Roadmap
 
-Here is a recommended directory structure that builds on what you already have:
+- [x] Basic Syntax Highlighting
+- [x] Word-based Suggestions
+- [ ] Context-aware Autocompletion (Planned)
+- [ ] Quality Improvements
 
+## Features
+
+*   **Interactive REPL**: A powerful Read-Eval-Print Loop with a customizable prompt.
+*   **Autocompletion**: Currently supports word-based suggestions. Context-aware suggestions are planned for future releases.
+*   **Syntax Highlighting**: Colorful output for SQL queries and results.
+*   **Special Commands**: Support for standard PostgreSQL backslash commands (e.g., `\d`, `\l`).
+*   **Smart History**: Persists your command history.
+
+## Installation
+
+### From Source
+
+Ensure you have Go installed (version 1.21+ recommended).
+
+```bash
+git clone https://github.com/balaji01-4d/pgxcli.git
+cd pgxcli
+make build
 ```
+
+The binary will be created in `bin/app` (or just `pgxcli` if you adjust the build).
+
+## Usage
+
+Basic usage to connect to a database:
+
+```bash
+./bin/app [DBNAME] [USERNAME] [flags]
+```
+
+### Examples
+
+Connect to a database named `mydb` as user `myuser`:
+
+```bash
+./bin/app mydb myuser
+```
+
+Connect using flags:
+
+```bash
+./bin/app --host localhost --port 5432 --user postgres --dbname postgres
+```
+
+Connect using a connection URI:
+
+```bash
+./bin/app postgres://user:password@localhost:5432/dbname
+```
+
+### Flags
+
+| Flag | Shorthand | Description |
+| :--- | :--- | :--- |
+| `--host` | `-h` | Host address of the Postgres database (default "localhost") |
+| `--port` | `-p` | Port number (default 5432) |
+| `--user` | `-u`, `-U` | Username to connect as |
+| `--dbname` | `-d` | Database name to connect to |
+| `--password` | `-W` | Force password prompt |
+| `--no-password` | `-w` | Never prompt for password |
+| `--debug` | | Enable debug mode for verbose logging |
+| `--help` | | Show help message |
+
+## Project Structure
+
+The project follows a standard Go layout:
+
+```text
 pgxcli/
 ├── cmd/
-│   └── pgxcli/
-│       └── main.go         # Entry point of your application
-│
+│   └── pgxcli/          # Application entry point
 ├── internal/
-│   ├── cli/                # Cobra command definitions
-│   │   ├── root.go         # Defines the root command (pgxcli)
-│   │   └── version.go      # A simple 'version' subcommand
-│   │
-│   ├── config/             # For loading/saving connection configs
-│   │   └── config.go
-│   │
-│   ├── database/           # Wrapper for all database interactions (using pgx)
-│   │   ├── connection.go   # Handles connecting to and disconnecting from Postgres
-│   │   └── executor.go     # Executes queries and fetches results
-│   │
-│   ├── highlighter/        # For syntax highlighting SQL (using chroma)
-│   │   └── sql.go
-│   │
-│   └── repl/               # The core Read-Eval-Print-Loop (REPL)
-│       ├── completer.go    # Autocompletion logic for go-prompt
-│       ├── executor.go     # The function that takes input and sends to database.go
-│       └── prompt.go       # The main REPL loop setup using go-prompt
-│
-├── go.mod
-├── go.sum
-├── LICENSE
-└── README.md
+│   ├── cli/             # Cobra command definitions and CLI logic
+│   ├── completer/       # SQL autocompletion engine and metadata handling
+│   ├── config/          # Configuration management
+│   ├── database/        # PostgreSQL connection and execution wrapper (using pgx)
+│   ├── logger/          # Logging utilities
+│   ├── parser/          # SQL parsing (using pg_query_go) for classification
+│   └── repl/            # The Read-Eval-Print-Loop core
+│       ├── commands/    # Built-in REPL commands (e.g., clear)
+│       └── renderer/    # Output rendering and formatting
+├── bin/                 # Compiled binaries
+├── go.mod               # Go module definition
+├── Makefile             # Build automation
+└── README.md            # Project documentation
 ```
 
-### Explanation of the Changes and Additions:
+## Internal Architecture
 
-1.  **`cmd/pgxcli/main.go`**: The entry point is moved into its own subdirectory. This is a common pattern for projects that might have multiple commands in the future (e.g., `pgxcli` and `pgcl-server`). For now, it keeps things tidy. `main.go` will be very simple, just calling into the `cli` package.
+*   **REPL**: Built using `elk-language/go-prompt`, it handles user input, history, and rendering.
+*   **Database**: Uses `jackc/pgx` for high-performance PostgreSQL interaction. The `internal/database` package abstracts connection pooling and query execution.
+*   **Parser**: Integrates `pganalyze/pg_query_go` to analyze SQL statements, determining if they are queries or execution commands to handle transactions and results correctly.
+*   **Completer**: Maintains metadata about the database schema (tables, columns) to provide intelligent suggestions.
 
-2.  **`internal/cli/`**: This is the new home for your `cobra` command definitions.
-    *   `root.go`: Will define the main `pgxcli` command, its flags (like `--host`, `--user`), and what happens when it's run (it will start the REPL).
-    *   You can add other command files here later, like `version.go`.
+## Contributing
 
-3.  **`internal/config/`**: `pgxcli` stores connection history. This package would be responsible for reading and writing configuration files (e.g., `~/.config/pgxcli/config`).
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-4.  **`internal/database/`**: You had `internals/pg`, which is great. Renaming it to `database` makes it a little more generic. It acts as a wrapper around `pgx` and provides your application with a clean API for all database operations.
+## License
 
-5.  **`internal/repl/`**: This is a crucial new package. It will contain all the logic for the interactive prompt itself.
-    *   `prompt.go`: Sets up and runs the `go-prompt` loop.
-    *   `completer.go`: Provides the autocompletion suggestions (SQL keywords, table names, column names) to the prompt.
-    *   `executor.go`: Takes the string of text entered into the prompt, passes it to the `database` package to be executed, and then prints the results.
-
-6.  **`internal/highlighter/`**: A dedicated place for syntax highlighting logic. The REPL's executor can call this package to colorize the SQL output before printing it to the screen.
-
-This structure separates concerns cleanly, making it much easier to work on one part of the application without affecting the others. For example, you could swap out `go-prompt` for a different REPL library by only changing the code in the `internal/repl/` package.
+[MIT License](LICENSE)

@@ -98,7 +98,7 @@ func getConfig() *config.Config {
 	if exists {
 		userCfg, err := config.LoadConfig(configPath)
 		if err == nil {
-			cfg = userCfg
+			cfg = config.MergeConfig(cfg, userCfg)
 		} else {
 			fmt.Fprintf(os.Stderr, "unable to load user configuration\nerr:%v", err)
 		}

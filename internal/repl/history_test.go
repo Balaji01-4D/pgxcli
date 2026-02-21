@@ -1,6 +1,7 @@
 package repl
 
 import (
+	"log/slog"
 	"os"
 	"strings"
 	"testing"
@@ -8,21 +9,27 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// testLogger returns a logger that discards all output for tests.
+func testLogger() *slog.Logger {
+	return slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError + 1}))
+}
+
 func TestNewHistory(t *testing.T) {
+	logger := testLogger()
 	tests := []struct {
 		name string
 		path string
 
-		expected *history
+		expectedPath string
 	}{
-		{name: "with default history file", expected: &history{path: getHistoryFilePath()}},
-		{name: "with custom history file", path: "/custom_path", expected: &history{path: "/custom_path"}},
+		{name: "with default history file", expectedPath: getHistoryFilePath()},
+		{name: "with custom history file", path: "/custom_path", expectedPath: "/custom_path"},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			actual := newHistory(test.path)
-			assert.Equal(t, test.expected, actual)
+			actual := newHistory(test.path, logger)
+			assert.Equal(t, test.expectedPath, actual.path)
 		})
 	}
 }
@@ -41,7 +48,8 @@ func TestHistorySaveHistory(t *testing.T) {
 	histories := []string{"query1", "query2", "query3", "query4"}
 
 	h := history{
-		path: tempFile.Name(),
+		path:   tempFile.Name(),
+		logger: testLogger(),
 	}
 	for _, hist := range histories {
 		h.append(hist)

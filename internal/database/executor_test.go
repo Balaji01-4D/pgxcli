@@ -232,10 +232,7 @@ func TestExecutor_ping_Error(t *testing.T) {
 
 
 func TestExecutor_IsConnected(t *testing.T) {
-	ctx := context.Background()
-
 	conn := new(MockConn)
-	conn.On("Ping", ctx).Return(nil)
 
 	executor := &Executor{
 		Conn: conn,
@@ -243,5 +240,4 @@ func TestExecutor_IsConnected(t *testing.T) {
 	}
 
 	assert.True(t, executor.IsConnected())
-	conn.AssertExpectations(t)
 }

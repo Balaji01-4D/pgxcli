@@ -32,7 +32,7 @@ const (
 	MaxLenPrompt  = 30
 )
 
-var builtinsCommand = map[string] func () {
+var builtinsCommand = map[string]func(){
 	"clear": commands.ClearScreen,
 }
 
@@ -53,12 +53,12 @@ type Repl struct {
 	history *history
 	client  Client
 	config  *config.Config
-	logger *slog.Logger
+	logger  *slog.Logger
 }
 
 func New(client Client, cfg *config.Config, logger *slog.Logger) *Repl {
 	repl := &Repl{client: client, config: cfg, logger: logger}
-	repl.history = newHistory(cfg.Main.HistoryFile)
+	repl.history = newHistory(cfg.Main.HistoryFile, logger)
 	return repl
 }
 
@@ -94,13 +94,16 @@ func (r *Repl) Print(str string) {
 }
 
 func (r *Repl) PrintViaPager(output string) {
-	_ = EchoViaPager(func(w io.Writer) error {
+	if err := EchoViaPager(func(w io.Writer) error {
 		_, err := io.WriteString(w, output)
 		return err
-	})
+	}); err != nil {
+		r.logger.Error("failed to write via pager", "error", err)
+	}
 }
 
 func (r *Repl) Run(ctx context.Context) {
+	r.logger.Info("REPL started")
 	r.history.loadHistory()
 
 	for {
@@ -112,25 +115,30 @@ func (r *Repl) Run(ctx context.Context) {
 		}
 		start := time.Now()
 
+		r.logger.Debug("received command", "command_length", len(query))
 
 		if cmd, ok := builtinsCommand[query]; ok {
+			r.logger.Debug("executing builtin command", "command", query)
 			cmd()
 			continue
 		}
-		
+
 		metaResult, okay, err := r.client.ExecuteSpecial(ctx, query)
 		if err != nil {
-			r.logger.Error("Error executing special command", "err", err)
+			r.logger.Error("error executing special command", "error", err)
 			r.PrintError(err)
 			continue
 		}
 		if okay {
+			r.logger.Debug("special command executed", "result_kind", metaResult.ResultKind())
 			result, quit, err := r.handleSpecialCommand(ctx, metaResult)
 			if quit {
+				r.logger.Info("REPL exiting via quit command")
 				return
 			}
 
 			if err != nil {
+				r.logger.Error("error handling special command", "error", err)
 				r.PrintError(err)
 				continue
 			}
@@ -140,8 +148,10 @@ func (r *Repl) Run(ctx context.Context) {
 			continue
 		}
 
+		r.logger.Debug("executing query")
 		queryResult, err := r.client.ExecuteQuery(ctx, query)
 		if err != nil {
+			r.logger.Error("query execution failed", "error", err)
 			r.PrintError(err)
 			continue
 		}
@@ -149,6 +159,7 @@ func (r *Repl) Run(ctx context.Context) {
 		case *database.QueryResult:
 			tw, err := res.Render()
 			if err != nil {
+				r.logger.Error("error rendering query result", "error", err)
 				r.PrintError(err)
 				continue
 			}
@@ -217,7 +228,7 @@ func (r *Repl) handleSpecialCommand(ctx context.Context, metaResult pgxspecial.S
 	case pgxspecial.ResultKindDescribeTable:
 		tables, err := render.RenderDescribeTableResult(metaResult)
 		if err != nil {
-			r.logger.Error("Error rendering describe table result", "err", err)
+			r.logger.Error("error rendering describe table result", "error", err)
 			return "", false, err
 		}
 		return render.RenderTables(tables, table.StyleBold), false, nil
@@ -244,5 +255,7 @@ func (r *Repl) getPromptOptions(prefix string) []prompt.Option {
 }
 
 func (r *Repl) Close() {
+	r.logger.Debug("REPL closing, saving history")
 	r.history.saveHistory()
+	r.logger.Info("REPL closed")
 }

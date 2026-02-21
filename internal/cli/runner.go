@@ -37,20 +37,45 @@ func run(_ *cobra.Command, args []string) {
 
 	logFilePath := cfg.Main.LogFile
 	if logFilePath == "default" {
-		configPath, _ := config.GetConfigDir()
+		configPath, err := config.GetConfigDir()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "warning: could not get config dir for logging: %v\n", err)
+		}
 		logFilePath = filepath.Join(configPath, "pgxcli.log")
 	}
-	logger := logger.InitLogger(opts.Debug, logFilePath)
+	log := logger.InitLogger(opts.Debug, logFilePath)
+	defer func() {
+		if err := log.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "warning: failed to close log file: %v\n", err)
+		}
+	}()
 
-	postgres := database.New(logger)
+	// Log startup info
+	log.Info("pgxcli starting",
+		"version", version,
+		"debug", opts.Debug,
+	)
+	log.Debug("parsed flags",
+		"host", opts.Host,
+		"port", opts.Port,
+		"database", dbName,
+		"user", user,
+		"force_prompt", opts.ForcePrompt,
+		"never_prompt", opts.NeverPrompt,
+	)
+
+	postgres := database.New(log.Logger)
 
 	app := pgxCLI{
 		config: cfg,
 		client: postgres,
-		repl:   repl.New(postgres, cfg, logger),
+		repl:   repl.New(postgres, cfg, log.Logger),
+		logger: log.Logger,
 	}
 	defer func() {
-		_ = app.close(ctx)
+		if err := app.close(ctx); err != nil {
+			log.Error("failed to close app", "error", err)
+		}
 	}()
 
 	if user == "" {
@@ -58,6 +83,7 @@ func run(_ *cobra.Command, args []string) {
 		if user == "" {
 			currentUser, err := osuser.Current()
 			if err != nil {
+				log.Error("failed to get current user", "error", err)
 				app.repl.PrintError(err)
 				os.Exit(1)
 			}
@@ -71,6 +97,12 @@ func run(_ *cobra.Command, args []string) {
 		dbName = user
 	}
 
+	log.Debug("resolved connection params",
+		"database", dbName,
+		"user", user,
+		"connection_mode", getConnectionMode(dbName),
+	)
+
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt)
 
@@ -82,8 +114,17 @@ func run(_ *cobra.Command, args []string) {
 
 	appErr := app.start(ctx, dbName, user)
 	if appErr != nil {
+		log.Error("application error", "error", appErr)
 		app.repl.PrintError(appErr)
 	}
+}
+
+// getConnectionMode returns the connection mode based on the database string.
+func getConnectionMode(db string) string {
+	if strings.Contains(db, "://") || strings.Contains(db, "=") {
+		return "connection_string"
+	}
+	return "fields"
 }
 
 func getConfig() *config.Config {

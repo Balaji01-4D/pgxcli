@@ -3,6 +3,7 @@ package repl
 import (
 	"bufio"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,10 +17,11 @@ type history struct {
 	path      string
 	entries   []string
 	loadCount int
+	logger    *slog.Logger
 }
 
-func newHistory(historyPath string) *history {
-	h := &history{}
+func newHistory(historyPath string, logger *slog.Logger) *history {
+	h := &history{logger: logger}
 	if historyPath == "" || historyPath == config.Default {
 		h.path = getHistoryFilePath()
 	} else {
@@ -31,19 +33,24 @@ func newHistory(historyPath string) *history {
 func (h *history) loadHistory() {
 	file, err := os.Open(h.path)
 	if err != nil {
+		h.logger.Debug("could not open history file", "path", h.path, "error", err)
 		return
 	}
 	defer func() {
-		_ = file.Close()
+		if err := file.Close(); err != nil {
+			h.logger.Error("failed to close history file", "error", err)
+		}
 	}()
 	history, err := loadHistory(file, maxHistoryLines)
 	if err != nil {
+		h.logger.Error("failed to load history", "error", err)
 		h.entries = []string{}
 		h.loadCount = 0
 		return
 	}
 	h.entries = history
 	h.loadCount = len(history)
+	h.logger.Debug("history loaded", "entries", len(history))
 }
 
 func (h *history) saveHistory() {
@@ -56,13 +63,20 @@ func (h *history) saveHistory() {
 
 	f, err := os.OpenFile(h.path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
+		h.logger.Error("failed to open history file for writing", "error", err)
 		return
 	}
 	defer func() {
-		_ = f.Close()
+		if err := f.Close(); err != nil {
+			h.logger.Error("failed to close history file after writing", "error", err)
+		}
 	}()
 
-	_, _ = f.WriteString(strings.Join(newCommands, "\n") + "\n")
+	if _, err := f.WriteString(strings.Join(newCommands, "\n") + "\n"); err != nil {
+		h.logger.Error("failed to write history", "error", err)
+	} else {
+		h.logger.Debug("history saved", "new_entries", len(newCommands))
+	}
 }
 
 func (h *history) append(command string) {

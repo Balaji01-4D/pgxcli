@@ -1,6 +1,9 @@
 package completer
 
-import "strings"
+import (
+	"log/slog"
+	"strings"
+)
 
 type Completer struct {
 	metadata *MetaData
@@ -8,12 +11,25 @@ type Completer struct {
 	executor DatabaseExecutor
 
 	smartCompletion bool
+
+	logger *slog.Logger
 }
 
-func New() *Completer {
+// New creates a new Completer with an optional logger.
+// If logger is nil, logging will be disabled.
+func New(logger *slog.Logger) *Completer {
 	return &Completer{
 		metadata: NewMetaData(),
+		logger:   logger,
 	}
+}
+
+// log is a helper that safely logs, handling nil logger case.
+func (c *Completer) log() *slog.Logger {
+	if c.logger == nil {
+		return slog.Default()
+	}
+	return c.logger
 }
 
 func (c *Completer) ExtendDatabases(databases []string) {

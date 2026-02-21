@@ -53,7 +53,7 @@ func tryPipePager(pagerCmd []string, writeFn func(io.Writer) error) bool {
 	}
 
 	writeErr := writeFn(stdin)
-	stdin.Close()
+	_ = stdin.Close()
 
 	waiterr := waitIgnoringInterrupt(cmd)
 
@@ -69,7 +69,9 @@ func tryTempfilePager(pagerCmd []string, writerFn func(io.Writer) error) bool {
 	if err != nil {
 		return false
 	}
-	defer os.Remove(tmp.Name())
+	defer func() {
+		_ = os.Remove(tmp.Name())
+	}()
 
 	buf := &bytes.Buffer{}
 	if err := writerFn(buf); err != nil {
@@ -79,7 +81,7 @@ func tryTempfilePager(pagerCmd []string, writerFn func(io.Writer) error) bool {
 	if _, err := tmp.Write(buf.Bytes()); err != nil {
 		return false
 	}
-	tmp.Close()
+	_ = tmp.Close()
 
 	cmd := exec.Command(cmdPath, tmp.Name())
 	cmd.Stdout = os.Stdout
@@ -118,7 +120,7 @@ func getPager() []string {
 	}
 
 	if _, okay := os.LookupEnv("LESS"); !okay {
-		os.Setenv("LESS", "-SRFX")
+		_ = os.Setenv("LESS", "-SRFX")
 	}
 	return []string{"less"}
 }

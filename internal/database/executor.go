@@ -119,10 +119,11 @@ func (e *Executor) Execute(ctx context.Context, sql string, args ...any) (Result
 	return e.exec(ctx, sql, args...)
 }
 
-func (e *Executor) Close(ctx context.Context) {
+func (e *Executor) Close(ctx context.Context) error {
 	if e.Conn != nil {
-		e.Conn.Close(ctx)
+		return e.Conn.Close(ctx)
 	}
+	return nil
 }
 
 func (e *Executor) Ping(ctx context.Context) error {

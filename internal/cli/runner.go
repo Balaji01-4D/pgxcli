@@ -43,14 +43,15 @@ func run(_ *cobra.Command, args []string) {
 	logger := logger.InitLogger(opts.Debug, logFilePath)
 
 	postgres := database.New(logger)
-	defer postgres.Close(ctx)
 
 	app := pgxCLI{
 		config: cfg,
 		client: postgres,
 		repl:   repl.New(postgres, cfg, logger),
 	}
-	defer app.close(ctx)
+	defer func() {
+		_ = app.close(ctx)
+	}()
 
 	if user == "" {
 		user = os.Getenv("PGUSER")
@@ -83,8 +84,6 @@ func run(_ *cobra.Command, args []string) {
 	if appErr != nil {
 		app.repl.PrintError(appErr)
 	}
-
-	app.close(ctx)
 }
 
 func getConfig() *config.Config {

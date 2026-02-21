@@ -33,7 +33,9 @@ func (h *history) loadHistory() {
 	if err != nil {
 		return
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 	history, err := loadHistory(file, maxHistoryLines)
 	if err != nil {
 		h.entries = []string{}
@@ -56,9 +58,11 @@ func (h *history) saveHistory() {
 	if err != nil {
 		return
 	}
-	defer f.Close()
+	defer func() {
+		_ = f.Close()
+	}()
 
-	f.WriteString(strings.Join(newCommands, "\n") + "\n")
+	_, _ = f.WriteString(strings.Join(newCommands, "\n") + "\n")
 }
 
 func (h *history) append(command string) {

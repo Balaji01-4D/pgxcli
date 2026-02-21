@@ -81,7 +81,10 @@ func (p *pgxCLI) start(ctx context.Context, db, user string) error {
 	return nil
 }
 
-func (p *pgxCLI) close(ctx context.Context) {
-	p.client.Close(ctx)
+func (p *pgxCLI) close(ctx context.Context) error {
+	if err := p.client.Close(ctx); err != nil {
+		return err
+	}
 	p.repl.Close()
+	return nil
 }

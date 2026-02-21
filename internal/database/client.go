@@ -133,8 +133,9 @@ func (c *Client) GetHost() string {
 	return c.Executor.Host
 }
 
-func (c *Client) Close(ctx context.Context) {
+func (c *Client) Close(ctx context.Context) error {
 	if c.Executor != nil {
-		c.Executor.Close(ctx)
+		return c.Executor.Close(ctx)
 	}
+	return nil
 }

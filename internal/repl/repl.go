@@ -94,9 +94,9 @@ func (r *Repl) Print(str string) {
 }
 
 func (r *Repl) PrintViaPager(output string) {
-	EchoViaPager(func(w io.Writer) error {
-		io.WriteString(w, output)
-		return nil
+	_ = EchoViaPager(func(w io.Writer) error {
+		_, err := io.WriteString(w, output)
+		return err
 	})
 }
 

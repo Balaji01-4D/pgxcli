@@ -1,3 +1,9 @@
 /logs/**
 
 /bin
+/node_modules
+/dist
+/coverage
+/.env
+/.vscode
+/prompts

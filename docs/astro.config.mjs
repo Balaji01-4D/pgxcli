@@ -4,9 +4,12 @@ import starlight from '@astrojs/starlight';
 
 // https://astro.build/config
 export default defineConfig({
+	site: 'https://Balaji01-4D.github.io',
+	base: '/pgxcli/',
 	integrations: [
 		starlight({
-			title: 'pgxcli',
+			title: 'Pgxcli',
+			customCss: ['./src/styles/custom.css'],
 			social: [
 				{
 					label: 'GitHub',

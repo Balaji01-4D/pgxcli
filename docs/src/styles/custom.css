@@ -1,0 +1,16 @@
+:root {
+	--sl-content-width: 70rem;
+}
+
+/* Enhanced Transparency for Header on Hero Pages */
+[data-has-hero] header {
+	border-bottom: 1px solid transparent;
+	background-color: transparent;
+	-webkit-backdrop-filter: blur(16px);
+	backdrop-filter: blur(16px);
+}
+
+/* Ensure the hero image doesn't look weird with the header */
+[data-has-hero] .hero > img {
+	filter: drop-shadow(0 0 3rem var(--sl-color-accent-low));
+}

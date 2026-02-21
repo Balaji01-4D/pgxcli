@@ -47,10 +47,17 @@ func CommandType(sql string) string {
 	return "QUERY"
 }
 
+// IsQuery returns true if the SQL statement is a read-only query.
 func IsQuery(sql string) bool {
 	return CommandType(sql) == "QUERY"
 }
 
+// IsExecute returns true if the SQL statement modifies data.
 func IsExecute(sql string) bool {
 	return CommandType(sql) == "EXECUTE"
+}
+
+// IsValid returns true if the SQL statement can be parsed successfully.
+func IsValid(sql string) bool {
+	return CommandType(sql) != "INVALID"
 }

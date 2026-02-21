@@ -163,12 +163,12 @@ func (r *Repl) Run(ctx context.Context) {
 				r.PrintError(err)
 				continue
 			}
-			r.Print(tw.Render())
+			r.PrintViaPager(tw.Render())
 			fmt.Println()
 			r.PrintTime(res.Duration())
 			continue
 		case *database.ExecResult:
-			r.Print(res.Status)
+			r.PrintViaPager(res.Status)
 			fmt.Println()
 			r.PrintTime(res.Duration)
 			continue

@@ -163,8 +163,15 @@ func (r *Repl) Run(ctx context.Context) {
 				r.PrintError(err)
 				continue
 			}
-			r.PrintViaPager(tw.Render())
-			fmt.Println()
+			output := tw.Render()
+			// If columns exist, we printed a table. Append the command tag (e.g., "SELECT 5", "INSERT 0 1").
+			// If no columns, we just print the command tag.
+			if len(res.Columns()) == 0 {
+				output = res.CommandTag()
+			} else {
+				output += "\n" + res.CommandTag()
+			}
+			r.PrintViaPager(output)
 			r.PrintTime(res.Duration())
 			continue
 		case *database.ExecResult:
@@ -177,7 +184,6 @@ func (r *Repl) Run(ctx context.Context) {
 }
 
 func (r *Repl) handleSpecialCommand(ctx context.Context, metaResult pgxspecial.SpecialCommandResult) (string, bool, error) {
-
 	switch metaResult.ResultKind() {
 
 	case database.Exit:

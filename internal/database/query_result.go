@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jedib0t/go-pretty/v6/table"
 )
 
@@ -39,7 +40,12 @@ func (r *rowStreamer) Next() ([]any, error) {
 			r.closed = true
 			return nil, err
 		}
-		// convert []any as-is; nil for NULLs
+
+		// Convert pgtype values to native Go types for better formatting
+		for i, v := range vals {
+			vals[i] = convertValue(v)
+		}
+
 		return vals, nil
 	}
 	if err := r.rows.Err(); err != nil {
@@ -65,6 +71,10 @@ func (r *rowStreamer) Duration() time.Duration {
 	return r.duration
 }
 
+func (r *QueryResult) CommandTag() string {
+	return r.rows.CommandTag().String()
+}
+
 func (r *QueryResult) Render() (table.Writer, error) {
 	tw := table.NewWriter()
 
@@ -87,4 +97,15 @@ func (r *QueryResult) Render() (table.Writer, error) {
 		tw.AppendRow(row)
 	}
 	return tw, nil
+}
+
+func convertValue(v any) any {
+	switch val := v.(type) {
+	case pgtype.Numeric:
+		d, err := val.Value()
+		if err == nil {
+			return d
+		}
+	}
+	return v
 }

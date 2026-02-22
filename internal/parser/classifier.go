@@ -8,6 +8,10 @@ func CommandType(sql string) string {
 		return "INVALID"
 	}
 
+	if len(tree.Stmts) == 0 {
+		return "INVALID"
+	}
+
 	hasWrite := false
 
 	for _, stmt := range tree.Stmts {
@@ -19,22 +23,42 @@ func CommandType(sql string) string {
 				hasWrite = true
 			}
 
-		case *pg_query.Node_InsertStmt,
-			*pg_query.Node_UpdateStmt,
-			*pg_query.Node_DeleteStmt,
-			*pg_query.Node_CreateStmt,
+		case *pg_query.Node_InsertStmt:
+			if len(node.InsertStmt.ReturningList) == 0 {
+				hasWrite = true
+			}
+
+		case *pg_query.Node_UpdateStmt:
+			if len(node.UpdateStmt.ReturningList) == 0 {
+				hasWrite = true
+			}
+
+		case *pg_query.Node_DeleteStmt:
+			if len(node.DeleteStmt.ReturningList) == 0 {
+				hasWrite = true
+			}
+
+		case *pg_query.Node_VariableShowStmt,
+			*pg_query.Node_ExplainStmt,
+			*pg_query.Node_ExecuteStmt:
+			continue // safe
+
+		case *pg_query.Node_CreateStmt,
 			*pg_query.Node_AlterTableStmt,
 			*pg_query.Node_DropStmt,
 			*pg_query.Node_TruncateStmt,
-			*pg_query.Node_CopyStmt,
 			*pg_query.Node_RenameStmt:
 			hasWrite = true
 
+		case *pg_query.Node_CopyStmt:
+			if !node.CopyStmt.IsFrom {
+				hasWrite = false
+			} else {
+				hasWrite = true
+			}
+
 		case *pg_query.Node_VariableSetStmt:
 			hasWrite = true
-
-		case *pg_query.Node_VariableShowStmt:
-			continue // safe
 
 		default:
 			hasWrite = true

@@ -1,7 +1,6 @@
 package repl
 
 import (
-	"bytes"
 	"errors"
 	"io"
 	"os"
@@ -73,15 +72,13 @@ func tryTempfilePager(pagerCmd []string, writerFn func(io.Writer) error) bool {
 		_ = os.Remove(tmp.Name())
 	}()
 
-	buf := &bytes.Buffer{}
-	if err := writerFn(buf); err != nil {
+	if err := writerFn(tmp); err != nil {
+		_ = tmp.Close()
 		return false
 	}
-
-	if _, err := tmp.Write(buf.Bytes()); err != nil {
+	if err := tmp.Close(); err != nil {
 		return false
 	}
-	_ = tmp.Close()
 
 	cmd := exec.Command(cmdPath, tmp.Name())
 	cmd.Stdout = os.Stdout

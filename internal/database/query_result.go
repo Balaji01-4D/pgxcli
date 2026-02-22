@@ -1,6 +1,7 @@
 package database
 
 import (
+	"fmt"
 	"io"
 	"time"
 
@@ -8,6 +9,10 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jedib0t/go-pretty/v6/table"
 )
+
+// batchSize controls how many rows are buffered per rendered table chunk,
+// preventing OOM when querying very large tables.
+const batchSize = 500
 
 // query → returns rows (SELECT, SHOW, etc.)
 
@@ -75,28 +80,53 @@ func (r *QueryResult) CommandTag() string {
 	return r.rows.CommandTag().String()
 }
 
-func (r *QueryResult) Render() (table.Writer, error) {
-	tw := table.NewWriter()
-
-	row := make(table.Row, len(r.columns))
+// RenderTo streams query results to w in batches of batchSize rows to avoid
+// loading the entire result set into memory at once.
+func (r *QueryResult) RenderTo(w io.Writer) error {
+	header := make(table.Row, len(r.columns))
 	for i, col := range r.columns {
-		row[i] = col
+		header[i] = col
 	}
-	tw.AppendHeader(row)
 
+	wroteAny := false
 	for {
-		values, err := r.Next()
-		if err == io.EOF {
+		var batch []table.Row
+		for i := 0; i < batchSize; i++ {
+			values, err := r.Next()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				return err
+			}
+			row := make(table.Row, len(values))
+			copy(row, values)
+			batch = append(batch, row)
+		}
+		if len(batch) == 0 {
 			break
 		}
-		if err != nil {
-			return nil, err
+		wroteAny = true
+		tw := table.NewWriter()
+		tw.AppendHeader(header)
+		for _, row := range batch {
+			tw.AppendRow(row)
 		}
-		row := make(table.Row, len(values))
-		copy(row, values)
-		tw.AppendRow(row)
+		if _, err := fmt.Fprintln(w, tw.Render()); err != nil {
+			return err
+		}
 	}
-	return tw, nil
+
+	// Always render at least a header-only table so callers can see column names
+	// even when the query returns zero rows.
+	if !wroteAny {
+		tw := table.NewWriter()
+		tw.AppendHeader(header)
+		_, err := fmt.Fprintln(w, tw.Render())
+		return err
+	}
+
+	return nil
 }
 
 func convertValue(v any) any {

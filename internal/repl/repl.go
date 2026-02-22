@@ -157,21 +157,21 @@ func (r *Repl) Run(ctx context.Context) {
 		}
 		switch res := queryResult.(type) {
 		case *database.QueryResult:
-			tw, err := res.Render()
-			if err != nil {
-				r.logger.Error("error rendering query result", "error", err)
-				r.PrintError(err)
+			if len(res.Columns()) == 0 {
+				r.PrintViaPager(res.CommandTag())
+				r.PrintTime(res.Duration())
 				continue
 			}
-			output := tw.Render()
-			// If columns exist, we printed a table. Append the command tag (e.g., "SELECT 5", "INSERT 0 1").
-			// If no columns, we just print the command tag.
-			if len(res.Columns()) == 0 {
-				output = res.CommandTag()
-			} else {
-				output += "\n" + res.CommandTag()
+			if pagerErr := EchoViaPager(func(w io.Writer) error {
+				if err := res.RenderTo(w); err != nil {
+					return err
+				}
+				_, err := fmt.Fprintln(w, res.CommandTag())
+				return err
+			}); pagerErr != nil {
+				r.logger.Error("error rendering query result", "error", pagerErr)
+				r.PrintError(pagerErr)
 			}
-			r.PrintViaPager(output)
 			r.PrintTime(res.Duration())
 			continue
 		case *database.ExecResult:

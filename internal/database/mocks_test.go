@@ -12,7 +12,7 @@ type MockConn struct {
 	mock.Mock
 }
 
-func (mc *MockConn) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error) { 
+func (mc *MockConn) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
 	argsMocks := mc.Called(ctx, sql)
 	return argsMocks.Get(0).(pgx.Rows), argsMocks.Error(1)
 }
@@ -22,21 +22,20 @@ func (mc *MockConn) Exec(ctx context.Context, sql string, args ...any) (pgconn.C
 	return argsMocks.Get(0).(pgconn.CommandTag), argsMocks.Error(1)
 }
 
-func (mc *MockConn) Ping(ctx context.Context) error { 
+func (mc *MockConn) Ping(ctx context.Context) error {
 	argMocks := mc.Called(ctx)
 	return argMocks.Error(0)
 }
 
 func (mc *MockConn) QueryRow(ctx context.Context, sql string, args ...any) pgx.Row { return nil }
-func (mc *MockConn) Close(ctx context.Context) error { return nil }
-func (mc *MockConn) Config() *pgx.ConnConfig { return nil }
-
+func (mc *MockConn) Close(ctx context.Context) error                               { return nil }
+func (mc *MockConn) Config() *pgx.ConnConfig                                       { return nil }
 
 type MockRows struct {
 	mock.Mock
-	data [][]any
+	data   [][]any
 	fields []pgconn.FieldDescription
-	index int
+	index  int
 }
 
 func (m *MockRows) FieldDescriptions() []pgconn.FieldDescription {
@@ -60,8 +59,8 @@ func (m *MockRows) Scan(dest ...any) error {
 	return nil
 }
 
-func (m *MockRows) Conn() *pgx.Conn { return &pgx.Conn{} }
-func (m *MockRows) Close() {}
+func (m *MockRows) Conn() *pgx.Conn               { return &pgx.Conn{} }
+func (m *MockRows) Close()                        {}
 func (m *MockRows) Err() error                    { return nil }
 func (m *MockRows) CommandTag() pgconn.CommandTag { return pgconn.CommandTag{} }
 func (m *MockRows) Values() ([]any, error) {
@@ -73,4 +72,4 @@ func (m *MockRows) Values() ([]any, error) {
 	copy(vals, row)
 	return vals, nil
 }
-func (m *MockRows) RawValues() [][]byte           { return nil }
+func (m *MockRows) RawValues() [][]byte { return nil }

@@ -71,10 +71,9 @@ func (e *Executor) query(ctx context.Context, sql string, args ...any) (dbresult
 	}
 	e.Logger.Info("Query completed", "sql", sql, "duration_ms", time.Since(start).Milliseconds())
 	return dbresult.NewQueryResult(
-			rows,
-			start,
+		rows,
+		start,
 	), nil
-
 }
 
 // For executing commands like INSERT, UPDATE, DELETE etc.

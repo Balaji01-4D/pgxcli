@@ -22,7 +22,7 @@ type Client struct {
 
 func New(logger *slog.Logger) *Client {
 	postgres := &Client{
-		now: time.Now(),
+		now:    time.Now(),
 		Logger: logger,
 	}
 	return postgres

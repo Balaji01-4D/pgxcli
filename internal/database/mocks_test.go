@@ -64,5 +64,13 @@ func (m *MockRows) Conn() *pgx.Conn { return &pgx.Conn{} }
 func (m *MockRows) Close() {}
 func (m *MockRows) Err() error                    { return nil }
 func (m *MockRows) CommandTag() pgconn.CommandTag { return pgconn.CommandTag{} }
-func (m *MockRows) Values() ([]any, error)        { return nil, nil }
+func (m *MockRows) Values() ([]any, error) {
+	if m.index == 0 || m.index > len(m.data) {
+		return nil, nil
+	}
+	row := m.data[m.index-1]
+	vals := make([]any, len(row))
+	copy(vals, row)
+	return vals, nil
+}
 func (m *MockRows) RawValues() [][]byte           { return nil }

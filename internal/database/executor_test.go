@@ -2,9 +2,11 @@ package database
 
 import (
 	"context"
+	"io"
 	"log/slog"
 	"testing"
 
+	dbresult "github.com/balaji01-4d/pgxcli/internal/database/db_result"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stretchr/testify/assert"
 )
@@ -29,32 +31,30 @@ func TestExecutor_query(t *testing.T) {
 	conn.On("Query", ctx, "select * from users").Return(rows, nil)
 
 	executor := &Executor{
-		Conn: conn,
+		Conn:   conn,
 		Logger: slog.Default(),
 	}
 
 	result, err := executor.query(ctx, "select * from users")
 	assert.NoError(t, err)
 
-	assert.Equal(t, []string{"id", "name", "age"}, result.columns)
+	qr := result.(*dbresult.QueryResult)
+	assert.Equal(t, []string{"id", "name", "age"}, qr.Columns())
 
-	var id, name, age any
+	row1, err := qr.Next()
+	assert.NoError(t, err)
+	assert.Equal(t, records[0][0], row1[0])
+	assert.Equal(t, records[0][1], row1[1])
+	assert.Equal(t, records[0][2], row1[2])
 
-	assert.True(t, result.rows.Next())
-	assert.NoError(t, result.rows.Scan(&id, &name, &age))
+	row2, err := qr.Next()
+	assert.NoError(t, err)
+	assert.Equal(t, records[1][0], row2[0])
+	assert.Equal(t, records[1][1], row2[1])
+	assert.Equal(t, records[1][2], row2[2])
 
-	assert.Equal(t, records[0][0], id)
-	assert.Equal(t, records[0][1], name)
-	assert.Equal(t, records[0][2], age)
-
-	assert.True(t, result.rows.Next())
-	assert.NoError(t, result.rows.Scan(&id, &name, &age))
-
-	assert.Equal(t, records[1][0], id)
-	assert.Equal(t, records[1][1], name)
-	assert.Equal(t, records[1][2], age)
-
-	assert.False(t, result.rows.Next())
+	_, err = qr.Next()
+	assert.ErrorIs(t, err, io.EOF)
 	conn.AssertExpectations(t)
 }
 
@@ -65,10 +65,10 @@ func TestExecutor_query_Error(t *testing.T) {
 	conn.On("Query", ctx, "select * from users").Return(&MockRows{}, assert.AnError)
 
 	executor := &Executor{
-		Conn: conn,
+		Conn:   conn,
 		Logger: slog.Default(),
 	}
-	
+
 	result, err := executor.query(ctx, "select * from users")
 	assert.Nil(t, result)
 	assert.Error(t, err)
@@ -92,15 +92,17 @@ func TestExecutor_query_Empty(t *testing.T) {
 	conn.On("Query", ctx, "select * from users").Return(rows, nil)
 
 	executor := &Executor{
-		Conn: conn,
+		Conn:   conn,
 		Logger: slog.Default(),
 	}
 
 	result, err := executor.query(ctx, "select * from users")
 	assert.NoError(t, err)
 
-	assert.Equal(t, []string{"id", "name", "age"}, result.columns)
-	assert.False(t, result.rows.Next())
+	qr := result.(*dbresult.QueryResult)
+	assert.Equal(t, []string{"id", "name", "age"}, qr.Columns())
+	_, err = qr.Next()
+	assert.ErrorIs(t, err, io.EOF)
 	conn.AssertExpectations(t)
 }
 
@@ -113,7 +115,7 @@ func TestExecutor_query_RelationNotFound(t *testing.T) {
 	})
 
 	executor := &Executor{
-		Conn: conn,
+		Conn:   conn,
 		Logger: slog.Default(),
 	}
 
@@ -132,14 +134,15 @@ func TestExecutor_Execute(t *testing.T) {
 	conn.On("Exec", ctx, "delete from users where id = 1").Return(tag, nil)
 
 	executor := &Executor{
-		Conn: conn,
+		Conn:   conn,
 		Logger: slog.Default(),
 	}
 
 	result, err := executor.exec(ctx, "delete from users where id = 1")
-	assert.Equal(t, result.RowsAffected, int64(1))
-	assert.Equal(t, result.Status, "DELETE 1")
 	assert.NoError(t, err)
+	er := result.(*dbresult.ExecResult)
+	assert.Equal(t, int64(1), er.RowsAffected())
+	assert.Equal(t, "DELETE 1", er.String())
 	conn.AssertExpectations(t)
 }
 
@@ -152,14 +155,15 @@ func TestExecutor_Execute_Insert(t *testing.T) {
 	conn.On("Exec", ctx, "insert into users (name) values ('name1')").Return(tag, nil)
 
 	executor := &Executor{
-		Conn: conn,
+		Conn:   conn,
 		Logger: slog.Default(),
 	}
 
 	result, err := executor.exec(ctx, "insert into users (name) values ('name1')")
-	assert.Equal(t, result.RowsAffected, int64(1))
-	assert.Equal(t, result.Status, "INSERT 0 1")
 	assert.NoError(t, err)
+	er := result.(*dbresult.ExecResult)
+	assert.Equal(t, int64(1), er.RowsAffected())
+	assert.Equal(t, "INSERT 0 1", er.String())
 	conn.AssertExpectations(t)
 }
 
@@ -170,7 +174,7 @@ func TestExecutor_Execute_Error(t *testing.T) {
 	conn.On("Exec", ctx, "delete from users where id = 1").Return(pgconn.NewCommandTag(""), assert.AnError)
 
 	executor := &Executor{
-		Conn: conn,
+		Conn:   conn,
 		Logger: slog.Default(),
 	}
 
@@ -178,7 +182,7 @@ func TestExecutor_Execute_Error(t *testing.T) {
 	assert.Nil(t, result)
 	assert.Error(t, err)
 	conn.AssertExpectations(t)
-}	
+}
 
 func TestExecutor_Execute_RelationNotFound(t *testing.T) {
 	ctx := context.Background()
@@ -190,7 +194,7 @@ func TestExecutor_Execute_RelationNotFound(t *testing.T) {
 	conn.On("Exec", ctx, "delete from users where id = 1").Return(pgconn.NewCommandTag(""), relationNotFoundErr)
 
 	executor := &Executor{
-		Conn: conn,
+		Conn:   conn,
 		Logger: slog.Default(),
 	}
 
@@ -208,7 +212,7 @@ func TestExecutor_ping(t *testing.T) {
 	conn.On("Ping", ctx).Return(nil)
 
 	executor := &Executor{
-		Conn: conn,
+		Conn:   conn,
 		Logger: slog.Default(),
 	}
 
@@ -230,12 +234,11 @@ func TestExecutor_ping_Error(t *testing.T) {
 	assert.ErrorContains(t, err, "database not connected")
 }
 
-
 func TestExecutor_IsConnected(t *testing.T) {
 	conn := new(MockConn)
 
 	executor := &Executor{
-		Conn: conn,
+		Conn:   conn,
 		Logger: slog.Default(),
 	}
 

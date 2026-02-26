@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	dbresult "github.com/balaji01-4d/pgxcli/internal/database/db_result"
 	"github.com/balaji01-4d/pgxspecial"
 )
 
@@ -47,7 +48,7 @@ func (c *Client) ExecuteSpecial(ctx context.Context,
 	return result, okay, err
 }
 
-func (c *Client) ExecuteQuery(ctx context.Context, query string) (Result, error) {
+func (c *Client) ExecuteQuery(ctx context.Context, query string) (dbresult.Result, error) {
 	return c.Executor.Execute(ctx, query)
 }
 

@@ -1,4 +1,4 @@
-package repl
+package pager
 
 import (
 	"bytes"
@@ -13,6 +13,46 @@ import (
 
 	"github.com/google/shlex"
 )
+
+type Content interface {
+	Colums() []string
+	Next() ([]any, error)
+	Close() error
+}
+
+type opts func(*Pager) error 
+
+
+type Pager struct {
+	cmd *exec.Cmd
+}
+
+func New(opts ...opts) (*Pager, error) {
+	pager := &Pager{}
+	for _, opt := range opts {
+		if err := opt(pager); err != nil {
+			return nil, err
+		}
+	}
+
+	return pager, nil
+}
+
+func ma() {
+	pager, _ := New(WithDefaultPager)
+}
+
+func WithDefaultPager(pager *Pager) error {
+	pagerCmd := getPager()
+	cmdPath, err := exec.LookPath(pagerCmd[0])
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command(cmdPath, pagerCmd[1:]...)
+	pager.cmd = cmd
+	return nil
+} 
 
 func EchoViaPager(writeFn func(io.Writer) error) error {
 	stdout := os.Stdout

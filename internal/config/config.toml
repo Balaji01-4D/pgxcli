@@ -9,6 +9,13 @@
 # \n - Newline
 prompt = "\\u@\\h:\\d> "
 
+# syntax highlighting style
+# Available styles:
+# monokai, dracula, nord, onedark, github-dark
+# gruvbox, solarized-dark, xcode-dark, darcula, catppuccin-mocha
+# For more styles, visit "https://xyproto.github.io/splash/docs/index.html"
+style = "monokai"
+
 
 # history
 history_file = "default"

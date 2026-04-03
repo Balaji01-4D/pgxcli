@@ -25,6 +25,7 @@ type Config struct {
 
 type main struct {
 	Prompt      string `toml:"prompt"`
+	Style       string `toml:"style"`
 	HistoryFile string `toml:"history_file"`
 	LogFile     string `toml:"log_file"`
 }
@@ -87,6 +88,7 @@ func MergeConfig(defaultConfig, userConfig Config) Config {
 	}
 
 	mergedConfig.Main.Prompt = setIfNotEmpty(defaultConfig.Main.Prompt, userConfig.Main.Prompt)
+	mergedConfig.Main.Style = setIfNotEmpty(defaultConfig.Main.Style, userConfig.Main.Style)
 	mergedConfig.Main.HistoryFile = setIfNotEmpty(defaultConfig.Main.HistoryFile, userConfig.Main.HistoryFile)
 	mergedConfig.Main.LogFile = setIfNotEmpty(defaultConfig.Main.LogFile, userConfig.Main.LogFile)
 

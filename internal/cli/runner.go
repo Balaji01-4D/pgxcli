@@ -65,11 +65,17 @@ func run(_ *cobra.Command, args []string) {
 	)
 
 	postgres := database.New(log.Logger)
+	repl, err := repl.New(postgres, cfg, log.Logger)
+	if err != nil {
+		log.Error("failed to initialize REPL", "error", err)
+		fmt.Fprintf(os.Stderr, "failed to initialize REPL: %v\n", err)
+		os.Exit(1)
+	}
 
 	app := pgxCLI{
 		config: cfg,
 		client: postgres,
-		repl:   repl.New(postgres, cfg, log.Logger),
+		repl:   repl,
 		logger: log.Logger,
 	}
 	defer func() {

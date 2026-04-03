@@ -48,10 +48,9 @@ func TestSaveConfig(t *testing.T) {
 }
 
 func TestMergeConfig(t *testing.T) {
-
 	testCase := []struct {
-		name       string
-		baseCfg    Config
+		name        string
+		baseCfg     Config
 		overrideCfg Config
 		expectedCfg Config
 	}{
@@ -60,6 +59,7 @@ func TestMergeConfig(t *testing.T) {
 			baseCfg: Config{
 				Main: main{
 					Prompt:      "\\u@\\h:\\d> ",
+					Style:       "monokai",
 					HistoryFile: "default",
 					LogFile:     "default",
 				},
@@ -67,12 +67,14 @@ func TestMergeConfig(t *testing.T) {
 			overrideCfg: Config{
 				Main: main{
 					Prompt:      "\\u@\\h:\\d> ",
+					Style:       "monokai",
 					HistoryFile: "custom_history.txt",
 				},
 			},
 			expectedCfg: Config{
 				Main: main{
 					Prompt:      "\\u@\\h:\\d> ",
+					Style:       "monokai",
 					HistoryFile: "custom_history.txt",
 					LogFile:     "default",
 				},
@@ -83,6 +85,7 @@ func TestMergeConfig(t *testing.T) {
 			baseCfg: Config{
 				Main: main{
 					Prompt:      "\\u@\\h:\\d> ",
+					Style:       "monokai",
 					HistoryFile: "default",
 					LogFile:     "default",
 				},
@@ -90,12 +93,14 @@ func TestMergeConfig(t *testing.T) {
 			overrideCfg: Config{
 				Main: main{
 					Prompt:  "\\u@\\h:\\d> ",
+					Style:   "monokai",
 					LogFile: "custom_log.txt",
 				},
 			},
 			expectedCfg: Config{
 				Main: main{
 					Prompt:      "\\u@\\h:\\d> ",
+					Style:       "monokai",
 					HistoryFile: "default",
 					LogFile:     "custom_log.txt",
 				},
@@ -106,6 +111,7 @@ func TestMergeConfig(t *testing.T) {
 			baseCfg: Config{
 				Main: main{
 					Prompt:      "\\u@\\h:\\d> ",
+					Style:       "monokai",
 					HistoryFile: "default",
 					LogFile:     "default",
 				},
@@ -113,11 +119,37 @@ func TestMergeConfig(t *testing.T) {
 			overrideCfg: Config{
 				Main: main{
 					Prompt: "\\u@\\h:\\d$ ",
+					Style:  "monokai",
 				},
 			},
 			expectedCfg: Config{
 				Main: main{
 					Prompt:      "\\u@\\h:\\d$ ",
+					Style:       "monokai",
+					HistoryFile: "default",
+					LogFile:     "default",
+				},
+			},
+		},
+		{
+			name: "override style",
+			baseCfg: Config{
+				Main: main{
+					Prompt:      "\\u@\\h:\\d> ",
+					Style:       "monokai",
+					HistoryFile: "default",
+					LogFile:     "default",
+				},
+			},
+			overrideCfg: Config{
+				Main: main{
+					Style: "dracula",
+				},
+			},
+			expectedCfg: Config{
+				Main: main{
+					Prompt:      "\\u@\\h:\\d> ",
+					Style:       "dracula",
 					HistoryFile: "default",
 					LogFile:     "default",
 				},
@@ -128,6 +160,7 @@ func TestMergeConfig(t *testing.T) {
 			baseCfg: Config{
 				Main: main{
 					Prompt:      "\\u@\\h:\\d> ",
+					Style:       "monokai",
 					HistoryFile: "default",
 					LogFile:     "default",
 				},
@@ -136,16 +169,18 @@ func TestMergeConfig(t *testing.T) {
 			expectedCfg: Config{
 				Main: main{
 					Prompt:      "\\u@\\h:\\d> ",
+					Style:       "monokai",
 					HistoryFile: "default",
 					LogFile:     "default",
 				},
-			},	
+			},
 		},
 		{
 			name: "override all fields",
 			baseCfg: Config{
 				Main: main{
 					Prompt:      "\\u@\\h:\\d> ",
+					Style:       "monokai",
 					HistoryFile: "default",
 					LogFile:     "default",
 				},
@@ -153,6 +188,7 @@ func TestMergeConfig(t *testing.T) {
 			overrideCfg: Config{
 				Main: main{
 					Prompt:      "\\u@\\h:\\d$ ",
+					Style:       "dracula",
 					HistoryFile: "custom_history.txt",
 					LogFile:     "custom_log.txt",
 				},
@@ -160,6 +196,7 @@ func TestMergeConfig(t *testing.T) {
 			expectedCfg: Config{
 				Main: main{
 					Prompt:      "\\u@\\h:\\d$ ",
+					Style:       "dracula",
 					HistoryFile: "custom_history.txt",
 					LogFile:     "custom_log.txt",
 				},
@@ -171,6 +208,7 @@ func TestMergeConfig(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			resultCfg := MergeConfig(tc.baseCfg, tc.overrideCfg)
 			assert.Equal(t, tc.expectedCfg.Main.Prompt, resultCfg.Main.Prompt)
+			assert.Equal(t, tc.expectedCfg.Main.Style, resultCfg.Main.Style)
 			assert.Equal(t, tc.expectedCfg.Main.HistoryFile, resultCfg.Main.HistoryFile)
 			assert.Equal(t, tc.expectedCfg.Main.LogFile, resultCfg.Main.LogFile)
 		})

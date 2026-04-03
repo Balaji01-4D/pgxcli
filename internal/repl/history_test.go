@@ -1,11 +1,13 @@
 package repl
 
 import (
+	"encoding/json"
 	"log/slog"
 	"os"
 	"strings"
 	"testing"
 
+	"github.com/jedib0t/go-prompter/prompt"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,14 +24,14 @@ func TestNewHistory(t *testing.T) {
 
 		expectedPath string
 	}{
-		{name: "with default history file", expectedPath: getHistoryFilePath()},
+		{name: "with empty history file uses default path", path: "", expectedPath: getHistoryFilePath()},
 		{name: "with custom history file", path: "/custom_path", expectedPath: "/custom_path"},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			actual := newHistory(test.path, logger)
-			assert.Equal(t, test.expectedPath, actual.path)
+			h, _ := newHistory(test.path, logger)
+			assert.Equal(t, test.expectedPath, h.path)
 		})
 	}
 }
@@ -45,45 +47,44 @@ func TestHistorySaveHistory(t *testing.T) {
 		assert.NoError(t, err)
 	}()
 
-	histories := []string{"query1", "query2", "query3", "query4"}
-
-	h := history{
-		path:   tempFile.Name(),
-		logger: testLogger(),
+	h := history{path: tempFile.Name(), loadCount: 1, logger: testLogger()}
+	entries := []prompt.HistoryCommand{
+		{Command: "select 1"},
+		{Command: "select 2"},
+		{Command: "select 3"},
 	}
-	for _, hist := range histories {
-		h.append(hist)
-	}
-	h.saveHistory()
+	h.saveHistory(entries)
 
 	data, err := os.ReadFile(tempFile.Name())
 	assert.NoError(t, err)
+	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
+	assert.Len(t, lines, 2)
 
-	expected := strings.Join(histories, "\n") + "\n"
-	actual := string(data)
+	var got []prompt.HistoryCommand
+	for _, line := range lines {
+		var entry prompt.HistoryCommand
+		err := json.Unmarshal([]byte(line), &entry)
+		assert.NoError(t, err)
+		got = append(got, entry)
+	}
 
-	assert.Equal(t, expected, actual)
-
+	assert.Equal(t, entries[1:], got)
 }
 
 func TestLoadHistory(t *testing.T) {
-	histories := []string{
-		"query1",
-		"query2",
-		"query3",
-		"query4",
-		"query5",
-		"query6",
-		"query7",
-		"query8",
-		"query9",
-		"query10",
-	}
+	r := strings.NewReader(strings.Join([]string{
+		`{"command":"query1","timestamp":"2026-04-04T10:00:00Z"}`,
+		`{"command":"query2","timestamp":"2026-04-04T10:00:01Z"}`,
+		"not-valid-json",
+		`{"command":"query3","timestamp":"2026-04-04T10:00:02Z"}`,
+		`{"command":"query4","timestamp":"2026-04-04T10:00:03Z"}`,
+	}, "\n"))
 
-	r := strings.NewReader(strings.Join(histories, "\n"))
-	max := 3
-
-	actual, err := loadHistory(r, max)
+	actual, err := loadHistory(r, 3, testLogger())
 	assert.NoError(t, err)
-	assert.Equal(t, histories[len(histories)-max:], actual)
+	commands := make([]string, 0, len(actual))
+	for _, entry := range actual {
+		commands = append(commands, entry.Command)
+	}
+	assert.Equal(t, []string{"query2", "query3", "query4"}, commands)
 }

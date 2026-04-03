@@ -2,6 +2,7 @@ package repl
 
 import (
 	"bufio"
+	"encoding/json"
 	"io"
 	"log/slog"
 	"os"
@@ -9,59 +10,84 @@ import (
 	"strings"
 
 	"github.com/balaji01-4d/pgxcli/internal/config"
+	"github.com/jedib0t/go-prompter/prompt"
 )
 
 const maxHistoryLines = 1000
 
 type history struct {
 	path      string
-	entries   []string
 	loadCount int
 	logger    *slog.Logger
 }
 
-func newHistory(historyPath string, logger *slog.Logger) *history {
+func newHistory(historyPath string, logger *slog.Logger) (*history, []prompt.HistoryCommand) {
 	h := &history{logger: logger}
 	if historyPath == "" || historyPath == config.Default {
 		h.path = getHistoryFilePath()
 	} else {
 		h.path = historyPath
 	}
-	return h
+	entries := h.loadHistory()
+	h.loadCount = len(entries)
+	return h, entries
 }
 
-func (h *history) loadHistory() {
+func (h *history) loadHistory() []prompt.HistoryCommand {
 	file, err := os.Open(h.path)
 	if err != nil {
-		h.logger.Debug("could not open history file", "path", h.path, "error", err)
-		return
+		if !os.IsNotExist(err) {
+			h.logger.Warn("could not open history file", "path", h.path, "error", err)
+		}
+		return []prompt.HistoryCommand{}
 	}
 	defer func() {
 		if err := file.Close(); err != nil {
 			h.logger.Error("failed to close history file", "error", err)
 		}
 	}()
-	history, err := loadHistory(file, maxHistoryLines)
+
+	entries, err := loadHistory(file, maxHistoryLines, h.logger)
 	if err != nil {
 		h.logger.Error("failed to load history", "error", err)
-		h.entries = []string{}
-		h.loadCount = 0
-		return
+		return []prompt.HistoryCommand{}
 	}
-	h.entries = history
-	h.loadCount = len(history)
-	h.logger.Debug("history loaded", "entries", len(history))
+	return entries
 }
 
-func (h *history) saveHistory() {
+func loadHistory(r io.Reader, maxHistoryLines int, logger *slog.Logger) ([]prompt.HistoryCommand, error) {
+	var entries []prompt.HistoryCommand
+	scanner := bufio.NewScanner(r)
 
-	// Only save new commands added during this session
-	newCommands := h.entries[h.loadCount:]
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+		var entry prompt.HistoryCommand
+		if err := json.Unmarshal([]byte(line), &entry); err != nil {
+			logger.Warn("skipping corrupt history entry", "line", line, "error", err)
+			continue
+		}
+		entries = append(entries, entry)
+		if len(entries) > maxHistoryLines {
+			entries = entries[1:]
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	return entries, nil
+}
+
+func (h *history) saveHistory(entries []prompt.HistoryCommand) {
+	newCommands := entries[h.loadCount:]
 	if len(newCommands) == 0 {
 		return
 	}
 
-	f, err := os.OpenFile(h.path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(h.path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
 	if err != nil {
 		h.logger.Error("failed to open history file for writing", "error", err)
 		return
@@ -72,15 +98,22 @@ func (h *history) saveHistory() {
 		}
 	}()
 
-	if _, err := f.WriteString(strings.Join(newCommands, "\n") + "\n"); err != nil {
-		h.logger.Error("failed to write history", "error", err)
-	} else {
-		h.logger.Debug("history saved", "new_entries", len(newCommands))
+	w := bufio.NewWriter(f)
+	for _, entry := range newCommands {
+		line, err := json.Marshal(entry)
+		if err != nil {
+			h.logger.Warn("skipping entry, failed to marshal", "command", entry.Command, "error", err)
+			continue
+		}
+		w.Write(line)
+		w.WriteByte('\n')
 	}
-}
 
-func (h *history) append(command string) {
-	h.entries = append(h.entries, command)
+	if err := w.Flush(); err != nil {
+		h.logger.Error("failed to flush history file", "error", err)
+		return
+	}
+	h.logger.Debug("history saved", "new_entries", len(newCommands))
 }
 
 func getHistoryFilePath() string {
@@ -88,23 +121,5 @@ func getHistoryFilePath() string {
 	if err != nil {
 		return ""
 	}
-	return filepath.Join(homeDir, ".pgxcli_history")
-}
-
-func loadHistory(r io.Reader, maxHistoryLines int) ([]string, error) {
-	var history []string
-
-	scanner := bufio.NewScanner(r)
-	// Use a circular buffer approach: keep only last N lines
-	for scanner.Scan() {
-		history = append(history, scanner.Text())
-		if len(history) > maxHistoryLines {
-			// Remove oldest entry to keep memory bounded
-			history = history[1:]
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, err
-	}
-	return history, nil
+	return filepath.Join(homeDir, ".pgxcli_history.jsonl")
 }

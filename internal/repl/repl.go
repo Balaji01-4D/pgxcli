@@ -15,9 +15,10 @@ import (
 	"github.com/balaji01-4d/pgxcli/internal/repl/commands"
 	render "github.com/balaji01-4d/pgxcli/internal/repl/renderer"
 	"github.com/balaji01-4d/pgxspecial"
-	"github.com/elk-language/go-prompt"
 	"github.com/fatih/color"
 	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/jedib0t/go-prompter/prompt"
+	"github.com/muesli/termenv"
 	"golang.org/x/term"
 )
 
@@ -36,6 +37,8 @@ var builtinsCommand = map[string]func(){
 	"clear": commands.ClearScreen,
 }
 
+var chromaFormatter = detectTerminalColorProfile()
+
 type Client interface {
 	GetUser() string
 	GetDatabase() string
@@ -51,23 +54,35 @@ type Client interface {
 
 type Repl struct {
 	history *history
+	prompt  prompt.Prompter
 	client  Client
 	config  *config.Config
 	logger  *slog.Logger
 }
 
-func New(client Client, cfg *config.Config, logger *slog.Logger) *Repl {
-	repl := &Repl{client: client, config: cfg, logger: logger}
-	repl.history = newHistory(cfg.Main.HistoryFile, logger)
-	return repl
+func New(client Client, cfg *config.Config, logger *slog.Logger) (*Repl, error) {
+	p, err := prompt.New()
+	if err != nil {
+		return nil, err
+	}
+
+	history, entries := newHistory(cfg.Main.HistoryFile, logger)
+	if err := applyPromptOptions(p, cfg, entries); err != nil {
+		return nil, err
+	}
+
+	repl := &Repl{client: client, config: cfg, logger: logger, prompt: p}
+	repl.history = history
+	return repl, nil
 }
 
-func (r *Repl) Read(prefix string) string {
-	text := prompt.Input(
-		r.getPromptOptions(prefix)...,
-	)
-	r.history.append(text)
-	return text
+func (r *Repl) Read(prefix string, ctx context.Context) (string, error) {
+	r.prompt.SetPrefix(prefix)
+	text, err := r.prompt.Prompt(ctx)
+	if err != nil {
+		return "", err
+	}
+	return text, nil
 }
 
 func (r *Repl) ReadPassword(user string) (string, error) {
@@ -104,11 +119,15 @@ func (r *Repl) PrintViaPager(output string) {
 
 func (r *Repl) Run(ctx context.Context) {
 	r.logger.Info("REPL started")
-	r.history.loadHistory()
 
 	for {
 		suffixStr := r.client.ParsePrompt(r.config.Main.Prompt)
-		query := r.Read(suffixStr)
+		query, err := r.Read(suffixStr, ctx)
+		if err != nil {
+			r.logger.Error("error reading input", "error", err)
+			r.PrintError(err)
+			continue
+		}
 
 		if strings.TrimSpace(query) == "" {
 			continue
@@ -251,17 +270,35 @@ func (r *Repl) handleSpecialCommand(ctx context.Context, metaResult pgxspecial.S
 	}
 }
 
-func (r *Repl) getPromptOptions(prefix string) []prompt.Option {
-	return []prompt.Option{
-		prompt.WithPrefix(prefix),
-		prompt.WithHistory(r.history.entries),
-		prompt.WithTitle("pgxcli"),
-		prompt.WithHistorySize(100),
-	}
-}
-
 func (r *Repl) Close() {
 	r.logger.Debug("REPL closing, saving history")
-	r.history.saveHistory()
+	r.history.saveHistory(r.prompt.History())
 	r.logger.Info("REPL closed")
+}
+
+func getSyntaxHighlighting(style string) (prompt.SyntaxHighlighter, error) {
+	return prompt.SyntaxHighlighterChroma("PostgreSQL SQL dialect", chromaFormatter, style)
+}
+
+func applyPromptOptions(p prompt.Prompter, config *config.Config, histories []prompt.HistoryCommand) error {
+	highlighter, err := getSyntaxHighlighting(config.Main.Style)
+	if err != nil {
+		return err
+	}
+	p.SetSyntaxHighlighter(highlighter)
+	p.SetHistory(histories)
+	return nil
+}
+
+func detectTerminalColorProfile() string {
+	switch termenv.ColorProfile() {
+	case termenv.TrueColor:
+		return "terminal16m"
+	case termenv.ANSI256:
+		return "terminal256"
+	case termenv.ANSI:
+		return "terminal16"
+	default:
+		return "noop" // Chroma's no-op formatter
+	}
 }

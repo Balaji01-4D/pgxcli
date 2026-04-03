@@ -21,7 +21,7 @@ type Client struct {
 
 func New(logger *slog.Logger) *Client {
 	postgres := &Client{
-		now: time.Now(),
+		now:    time.Now(),
 		Logger: logger,
 	}
 	return postgres
@@ -60,13 +60,15 @@ func (c *Client) ChangeDatabase(ctx context.Context, dbName string) error {
 		return fmt.Errorf("not connected to any database")
 	}
 
+	dbName = strings.TrimSpace(dbName)
+	if dbName == "" {
+		return fmt.Errorf("database name is required")
+	}
+
 	connConfig := c.Executor.Conn.Config().Copy()
 	connConfig.Database = dbName
 
-	connector, err := NewPGConnectorFromConnString(connConfig.ConnString())
-	if err != nil {
-		return err
-	}
+	connector := &PGConnector{cfg: connConfig}
 
 	exec, err := NewExecutor(
 		ctx,

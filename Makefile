@@ -1,7 +1,7 @@
 MAIN_PATH = "cmd/pgxcli/main.go"
 BUILD_PATH = "bin"
 
-.PHONY: build clean run update runc lint
+.PHONY: build clean run update runc lint test precommit
 
 build:
 	@mkdir -p $(BUILD_PATH)
@@ -9,6 +9,11 @@ build:
 
 lint:
 	@golangci-lint run
+
+test:
+	@go test ./...
+
+precommit: lint test
 
 runc: build
 	@./bin/app $(DB)

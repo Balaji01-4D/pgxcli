@@ -82,6 +82,10 @@ func loadHistory(r io.Reader, maxHistoryLines int, logger *slog.Logger) ([]promp
 }
 
 func (h *history) saveHistory(entries []prompt.HistoryCommand) {
+	if len(entries) <= h.loadCount {
+		return
+	}
+
 	newCommands := entries[h.loadCount:]
 	if len(newCommands) == 0 {
 		return

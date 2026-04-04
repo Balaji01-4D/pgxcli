@@ -2,6 +2,7 @@ package repl
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -79,7 +80,7 @@ func New(client Client, cfg *config.Config, logger *slog.Logger) (*Repl, error) 
 func (r *Repl) Read(prefix string, ctx context.Context) (string, error) {
 	r.prompt.SetPrefix(prefix)
 	text, err := r.prompt.Prompt(ctx)
-	if err != nil {
+	if err != nil && !errors.Is(err, prompt.ErrAborted){
 		return "", err
 	}
 	return text, nil

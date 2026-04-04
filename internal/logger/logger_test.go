@@ -13,7 +13,7 @@ import (
 
 func TestInitLogger_CreatesLogFileWithOwnerOnlyPermissions(t *testing.T) {
 	if runtime.GOOS == "windows" {
-		t.Skip("permission mode assertion is not reliable on windows")
+		t.Skip("permission mode assertion is not reliable on Windows")
 	}
 
 	logPath := filepath.Join(t.TempDir(), "app.log")
@@ -39,6 +39,7 @@ func TestInitLogger_FallsBackToStderrWhenPathIsDirectory(t *testing.T) {
 	os.Stderr = writer
 	t.Cleanup(func() {
 		os.Stderr = originalStderr
+		_ = writer.Close()
 		_ = reader.Close()
 	})
 

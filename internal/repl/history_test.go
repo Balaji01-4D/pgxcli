@@ -71,6 +71,31 @@ func TestHistorySaveHistory(t *testing.T) {
 	assert.Equal(t, entries[1:], got)
 }
 
+func TestHistorySaveHistory_EntriesShorterThanLoadCount(t *testing.T) {
+	tempFile, err := os.CreateTemp("", "history_test")
+	assert.NoError(t, err)
+
+	defer func() {
+		closeErr := tempFile.Close()
+		assert.NoError(t, closeErr)
+		err := os.Remove(tempFile.Name())
+		assert.NoError(t, err)
+	}()
+
+	h := history{path: tempFile.Name(), loadCount: 3, logger: testLogger()}
+	entries := []prompt.HistoryCommand{
+		{Command: "select 1"},
+	}
+
+	assert.NotPanics(t, func() {
+		h.saveHistory(entries)
+	})
+
+	data, err := os.ReadFile(tempFile.Name())
+	assert.NoError(t, err)
+	assert.Equal(t, "", string(data))
+}
+
 func TestLoadHistory(t *testing.T) {
 	r := strings.NewReader(strings.Join([]string{
 		`{"command":"query1","timestamp":"2026-04-04T10:00:00Z"}`,

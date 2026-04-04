@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -94,6 +95,42 @@ func TestHistorySaveHistory_EntriesShorterThanLoadCount(t *testing.T) {
 	data, err := os.ReadFile(tempFile.Name())
 	assert.NoError(t, err)
 	assert.Equal(t, "", string(data))
+}
+
+func TestHistorySaveHistory_CreatesMissingParentDirectoryAndFile(t *testing.T) {
+	baseDir, err := os.MkdirTemp("", "history_parent_test")
+	assert.NoError(t, err)
+	defer func() {
+		err := os.RemoveAll(baseDir)
+		assert.NoError(t, err)
+	}()
+
+	historyPath := filepath.Join(baseDir, "non_exist_folder", "user_provided_name.jsonl")
+	h := history{path: historyPath, loadCount: 0, logger: testLogger()}
+	entries := []prompt.HistoryCommand{{Command: "select 1"}}
+
+	h.saveHistory(entries)
+
+	_, err = os.Stat(filepath.Dir(historyPath))
+	assert.NoError(t, err)
+
+	data, err := os.ReadFile(historyPath)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, strings.TrimSpace(string(data)))
+}
+
+func TestHistorySaveHistory_DisablesHistoryOnInvalidPath(t *testing.T) {
+	h := history{path: "\x00", loadCount: 0, logger: testLogger()}
+	entries := []prompt.HistoryCommand{{Command: "select 1"}}
+
+	h.saveHistory(entries)
+
+	assert.True(t, h.disabled)
+
+	// Second call should no-op because history is disabled.
+	assert.NotPanics(t, func() {
+		h.saveHistory(entries)
+	})
 }
 
 func TestLoadHistory(t *testing.T) {

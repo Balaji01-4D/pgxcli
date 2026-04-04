@@ -35,7 +35,7 @@ func InitLogger(debug bool, filename string) *Logger {
 	}
 
 	file, err := os.OpenFile(filename,
-		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		// Fall back to stderr if we can't open file
 		fmt.Fprintf(os.Stderr, "warning: could not open log file %s: %v\n", filename, err)

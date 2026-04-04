@@ -69,6 +69,7 @@ func (c *Client) ChangeDatabase(ctx context.Context, dbName string) error {
 	connConfig.Database = dbName
 
 	connector := &PGConnector{cfg: connConfig}
+	oldExecutor := c.Executor
 
 	exec, err := NewExecutor(
 		ctx,
@@ -78,9 +79,18 @@ func (c *Client) ChangeDatabase(ctx context.Context, dbName string) error {
 	if err != nil {
 		return err
 	}
+
 	c.Executor = exec
-	c.CurrentDB = dbName
-	c.Logger.Info("Database changed", "database", dbName)
+	c.CurrentDB = exec.Database
+
+	if oldExecutor != nil {
+		if err := oldExecutor.Close(ctx); err != nil {
+			c.Logger.Error("Failed to close previous connection after database switch", "error", err)
+			return fmt.Errorf("database changed to %s but failed to close previous connection: %w", exec.Database, err)
+		}
+	}
+
+	c.Logger.Info("Database changed", "database", exec.Database)
 
 	return nil
 }

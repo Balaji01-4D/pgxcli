@@ -69,7 +69,7 @@ func CheckConfigExists(configDir string) (string, bool) {
 // used to save the default configuration when default configuration doesn't exist
 func SaveConfig(path string) error {
 	dir := filepath.Dir(path)
-	err := os.MkdirAll(dir, os.ModePerm)
+	err := os.MkdirAll(dir, 0o700)
 	if err != nil {
 		return err
 	}

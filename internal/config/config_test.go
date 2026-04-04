@@ -47,6 +47,18 @@ func TestSaveConfig(t *testing.T) {
 	assert.Equal(t, "default", loadedCfg.Main.HistoryFile)
 }
 
+func TestSaveConfig_CreatesDirWithRestrictivePermission(t *testing.T) {
+	tempDir := t.TempDir()
+	configPath := path.Join(tempDir, "nested", "config.toml")
+
+	err := SaveConfig(configPath)
+	assert.NoError(t, err)
+
+	info, err := os.Stat(path.Dir(configPath))
+	assert.NoError(t, err)
+	assert.Equal(t, os.FileMode(0o700), info.Mode().Perm())
+}
+
 func TestMergeConfig(t *testing.T) {
 	testCase := []struct {
 		name        string

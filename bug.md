@@ -13,8 +13,8 @@ Scope: static source-code review only (no fixes applied).
 2. **Connection leak when switching database**  
    - **Severity:** High  
    - **File:** `/home/runner/work/pgxcli/pgxcli/internal/database/client.go` (around lines 58-83)  
-   - **Why:** `ChangeDatabase` replaces `c.Executor` with a new executor but does not close the old one. Multiple `\\c` operations can accumulate open DB connections.  
-   - **Fix direction:** Keep old executor reference, close it after successful new connection and before/after assignment with safe ordering.
+   - **Why:** `ChangeDatabase` replaces `c.Executor` with a new executor but does not close the old one. Multiple `\c` operations can accumulate open DB connections.  
+   - **Fix direction:** Keep old executor reference, create and validate the new executor first, assign the new executor to `c.Executor`, then close the old executor.
 
 3. **Ctrl+C is consumed but not used to cancel app context**  
    - **Severity:** Medium  
@@ -45,4 +45,3 @@ Scope: static source-code review only (no fixes applied).
    - **File:** `/home/runner/work/pgxcli/pgxcli/internal/repl/history.go` (around lines 90-93)  
    - **Why:** `OpenFile` fails if parent directory is missing (especially for custom history paths), causing silent history persistence loss except log message.  
    - **Fix direction:** Ensure `filepath.Dir(h.path)` exists via `MkdirAll` before `OpenFile`.
-

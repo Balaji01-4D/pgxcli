@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	path "path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/BurntSushi/toml"
@@ -48,6 +49,10 @@ func TestSaveConfig(t *testing.T) {
 }
 
 func TestSaveConfig_CreatesDirWithRestrictivePermission(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("directory permission bits are not reliable on Windows")
+	}
+
 	tempDir := t.TempDir()
 	configPath := path.Join(tempDir, "nested", "config.toml")
 

@@ -53,6 +53,10 @@ func NewExecutor(ctx context.Context, c Connector, logger *slog.Logger) (*Execut
 	err = conn.Ping(ctx)
 	if err != nil {
 		logger.Error("Connection ping failed", "error", err)
+		if err := conn.Close(ctx); err != nil {
+			logger.Error("Failed to close connection", "error", err)
+		}
+
 		return nil, err
 	}
 

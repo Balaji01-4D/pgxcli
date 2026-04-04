@@ -28,12 +28,29 @@ func TestInitLogger_CreatesLogFileWithOwnerOnlyPermissions(t *testing.T) {
 func TestInitLogger_FallsBackToStderrWhenPathIsDirectory(t *testing.T) {
 	dirPath := t.TempDir()
 
+	originalStderr := os.Stderr
+	reader, writer, err := os.Pipe()
+	assert.NoError(t, err)
+	os.Stderr = writer
+	t.Cleanup(func() {
+		os.Stderr = originalStderr
+		_ = reader.Close()
+	})
+
 	logger := InitLogger(false, dirPath)
 	t.Cleanup(func() {
 		_ = logger.Close()
 	})
 
 	assert.Nil(t, logger.file)
+
+	const logMessage = "stderr fallback test message"
+	logger.Info(logMessage)
+
+	_ = writer.Close()
+	output, readErr := io.ReadAll(reader)
+	assert.NoError(t, readErr)
+	assert.Contains(t, string(output), logMessage)
 }
 
 func TestNopLogger(t *testing.T) {

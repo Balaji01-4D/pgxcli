@@ -2,7 +2,7 @@ package config
 
 import (
 	"os"
-	path "path/filepath"
+	"path/filepath"
 	"runtime"
 	"testing"
 
@@ -12,7 +12,7 @@ import (
 
 func TestLoadConfig_ValidConfig(t *testing.T) {
 	tempDir := t.TempDir()
-	configPath := path.Join(tempDir, "config.toml")
+	configPath := filepath.Join(tempDir, "config.toml")
 	expectedCfg := Config{
 		Main: main{
 			Prompt:      "\\u@\\h:\\d> ",
@@ -37,7 +37,7 @@ func TestLoadConfig_MissingFile(t *testing.T) {
 
 func TestSaveConfig(t *testing.T) {
 	tempDir := t.TempDir()
-	configPath := path.Join(tempDir, "config.toml")
+	configPath := filepath.Join(tempDir, "config.toml")
 
 	err := SaveConfig(configPath)
 	assert.NoError(t, err)
@@ -54,12 +54,12 @@ func TestSaveConfig_CreatesDirWithRestrictivePermission(t *testing.T) {
 	}
 
 	tempDir := t.TempDir()
-	configPath := path.Join(tempDir, "nested", "config.toml")
+	configPath := filepath.Join(tempDir, "nested", "config.toml")
 
 	err := SaveConfig(configPath)
 	assert.NoError(t, err)
 
-	info, err := os.Stat(path.Dir(configPath))
+	info, err := os.Stat(filepath.Dir(configPath))
 	assert.NoError(t, err)
 	assert.Equal(t, os.FileMode(0o700), info.Mode().Perm())
 }

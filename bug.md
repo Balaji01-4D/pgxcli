@@ -14,13 +14,13 @@ Scope: static source-code review only (no fixes applied).
    - **Severity:** High  
    - **File:** `/home/runner/work/pgxcli/pgxcli/internal/database/client.go` (around lines 58-83)  
    - **Why:** `ChangeDatabase` replaces `c.Executor` with a new executor but does not close the old one. Multiple `\c` operations can accumulate open DB connections.  
-   - **Fix direction:** Keep old executor reference, create and validate the new executor first, assign the new executor to `c.Executor`, then close the old executor.
+   - **Fix direction:** Keep old executor reference. Create and validate the new executor first; if creation fails, keep using the old executor unchanged. After successful assignment to `c.Executor`, close the old executor and handle close errors.
 
 3. **Ctrl+C is consumed but not used to cancel app context**  
    - **Severity:** Medium  
    - **File:** `/home/runner/work/pgxcli/pgxcli/internal/cli/runner.go` (around lines 112-119)  
    - **Why:** Signal goroutine loops forever reading `sigChan` and does nothing. `cancel()` from `WithCancel` is never called by signal handling, so graceful interrupt handling is broken.  
-   - **Fix direction:** On first interrupt call `cancel()` (and usually `signal.Stop` / channel close handling).
+   - **Fix direction:** On first interrupt, call `cancel()` to stop REPL work, then call `signal.Stop(sigChan)` during cleanup so no further signals are delivered to this channel.
 
 4. **Config directory created with world-writable mode**  
    - **Severity:** Medium (security)  
@@ -38,7 +38,7 @@ Scope: static source-code review only (no fixes applied).
    - **Severity:** Medium  
    - **File:** `/home/runner/work/pgxcli/pgxcli/internal/repl/history.go` (line ~85)  
    - **Why:** `newCommands := entries[h.loadCount:]` panics if `len(entries) < h.loadCount` (slice bounds out of range). This can happen if in-memory history is truncated/cleared during runtime.  
-   - **Fix direction:** Guard with length check before slicing.
+   - **Fix direction:** Guard before slicing; if `len(entries) <= h.loadCount`, treat as no new commands and return without slicing. Only slice when `len(entries) > h.loadCount`.
 
 7. **History file write does not ensure parent directory exists**  
    - **Severity:** Low  

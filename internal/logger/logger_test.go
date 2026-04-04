@@ -5,12 +5,17 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestInitLogger_CreatesLogFileWithOwnerOnlyPermissions(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("permission mode assertion is not reliable on windows")
+	}
+
 	logPath := filepath.Join(t.TempDir(), "app.log")
 
 	logger := InitLogger(false, logPath)

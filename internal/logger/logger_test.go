@@ -36,10 +36,18 @@ func TestInitLogger_FallsBackToStderrWhenPathIsDirectory(t *testing.T) {
 	originalStderr := os.Stderr
 	reader, writer, err := os.Pipe()
 	assert.NoError(t, err)
+	writerClosed := false
+	closeWriter := func() {
+		if writerClosed {
+			return
+		}
+		_ = writer.Close()
+		writerClosed = true
+	}
 	os.Stderr = writer
 	t.Cleanup(func() {
 		os.Stderr = originalStderr
-		_ = writer.Close()
+		closeWriter()
 		_ = reader.Close()
 	})
 
@@ -53,7 +61,7 @@ func TestInitLogger_FallsBackToStderrWhenPathIsDirectory(t *testing.T) {
 	const logMessage = "stderr fallback test message"
 	logger.Info(logMessage)
 
-	_ = writer.Close()
+	closeWriter()
 	output, readErr := io.ReadAll(reader)
 	assert.NoError(t, readErr)
 	assert.Contains(t, string(output), logMessage)

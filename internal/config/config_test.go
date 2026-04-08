@@ -10,18 +10,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestLoad_Success(t *testing.T) {
-	tempDir := t.TempDir()
-	originalConfigDir := os.Getenv("XDG_CONFIG_HOME")
-	defer func() {
-		if originalConfigDir != "" {
-			os.Setenv("XDG_CONFIG_HOME", originalConfigDir)
-		} else {
-			os.Unsetenv("XDG_CONFIG_HOME")
-		}
-	}()
+func setIsolatedUserConfigEnv(t *testing.T) {
+	t.Helper()
 
-	os.Setenv("XDG_CONFIG_HOME", tempDir)
+	tempHome := t.TempDir()
+	t.Setenv("HOME", tempHome)
+	t.Setenv("USERPROFILE", tempHome)
+	t.Setenv("XDG_CONFIG_HOME", tempHome)
+	t.Setenv("APPDATA", tempHome)
+}
+
+func TestLoad_Success(t *testing.T) {
+	setIsolatedUserConfigEnv(t)
 
 	cfg, err := Load()
 	require.NoError(t, err)
@@ -34,19 +34,10 @@ func TestLoad_Success(t *testing.T) {
 }
 
 func TestLoad_UserConfigOverridesDefaults(t *testing.T) {
-	tempDir := t.TempDir()
-	originalConfigDir := os.Getenv("XDG_CONFIG_HOME")
-	defer func() {
-		if originalConfigDir != "" {
-			os.Setenv("XDG_CONFIG_HOME", originalConfigDir)
-		} else {
-			os.Unsetenv("XDG_CONFIG_HOME")
-		}
-	}()
+	setIsolatedUserConfigEnv(t)
 
-	os.Setenv("XDG_CONFIG_HOME", tempDir)
-
-	userConfigPath := filepath.Join(tempDir, appName, filename)
+	userConfigPath, err := UserConfigPath()
+	require.NoError(t, err)
 	require.NoError(t, os.MkdirAll(filepath.Dir(userConfigPath), 0o700))
 
 	userConfig := `[main]
@@ -68,19 +59,10 @@ log_file = "/custom/log.txt"
 }
 
 func TestLoad_PartialUserConfigMergesWithDefaults(t *testing.T) {
-	tempDir := t.TempDir()
-	originalConfigDir := os.Getenv("XDG_CONFIG_HOME")
-	defer func() {
-		if originalConfigDir != "" {
-			os.Setenv("XDG_CONFIG_HOME", originalConfigDir)
-		} else {
-			os.Unsetenv("XDG_CONFIG_HOME")
-		}
-	}()
+	setIsolatedUserConfigEnv(t)
 
-	os.Setenv("XDG_CONFIG_HOME", tempDir)
-
-	userConfigPath := filepath.Join(tempDir, appName, filename)
+	userConfigPath, err := UserConfigPath()
+	require.NoError(t, err)
 	require.NoError(t, os.MkdirAll(filepath.Dir(userConfigPath), 0o700))
 
 	userConfig := `[main]
@@ -99,26 +81,17 @@ prompt = "custom> "
 }
 
 func TestLoad_InvalidUserConfig(t *testing.T) {
-	tempDir := t.TempDir()
-	originalConfigDir := os.Getenv("XDG_CONFIG_HOME")
-	defer func() {
-		if originalConfigDir != "" {
-			os.Setenv("XDG_CONFIG_HOME", originalConfigDir)
-		} else {
-			os.Unsetenv("XDG_CONFIG_HOME")
-		}
-	}()
+	setIsolatedUserConfigEnv(t)
 
-	os.Setenv("XDG_CONFIG_HOME", tempDir)
-
-	userConfigPath := filepath.Join(tempDir, appName, filename)
+	userConfigPath, err := UserConfigPath()
+	require.NoError(t, err)
 	require.NoError(t, os.MkdirAll(filepath.Dir(userConfigPath), 0o700))
 
 	invalidConfig := `this is not valid toml [[[`
 	require.NoError(t, os.WriteFile(userConfigPath, []byte(invalidConfig), 0o644))
 
-	_, err := Load()
-	assert.Error(t, err)
+	_, err = Load()
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "read user config")
 }
 

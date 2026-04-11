@@ -6,228 +6,151 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/BurntSushi/toml"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestLoadConfig_ValidConfig(t *testing.T) {
+func setIsolatedUserConfigEnv(t *testing.T) {
+	t.Helper()
+
+	tempHome := t.TempDir()
+	t.Setenv("HOME", tempHome)
+	t.Setenv("USERPROFILE", tempHome)
+	t.Setenv("XDG_CONFIG_HOME", tempHome)
+	t.Setenv("APPDATA", tempHome)
+}
+
+func TestLoad_Success(t *testing.T) {
+	setIsolatedUserConfigEnv(t)
+
+	cfg, err := Load()
+	require.NoError(t, err)
+	assert.NotNil(t, cfg)
+
+	assert.Equal(t, "\\u@\\h:\\d> ", cfg.Main.Prompt)
+	assert.Equal(t, "monokai", cfg.Main.Style)
+	assert.Equal(t, "default", cfg.Main.HistoryFile)
+	assert.Equal(t, "default", cfg.Main.LogFile)
+}
+
+func TestLoad_UserConfigOverridesDefaults(t *testing.T) {
+	setIsolatedUserConfigEnv(t)
+
+	userConfigPath, err := UserConfigPath()
+	require.NoError(t, err)
+	require.NoError(t, os.MkdirAll(filepath.Dir(userConfigPath), 0o700))
+
+	userConfig := `[main]
+prompt = "custom> "
+style = "dracula"
+history_file = "/custom/history.txt"
+log_file = "/custom/log.txt"
+`
+	require.NoError(t, os.WriteFile(userConfigPath, []byte(userConfig), 0o644))
+
+	cfg, err := Load()
+	require.NoError(t, err)
+	assert.NotNil(t, cfg)
+
+	assert.Equal(t, "custom> ", cfg.Main.Prompt)
+	assert.Equal(t, "dracula", cfg.Main.Style)
+	assert.Equal(t, "/custom/history.txt", cfg.Main.HistoryFile)
+	assert.Equal(t, "/custom/log.txt", cfg.Main.LogFile)
+}
+
+func TestLoad_PartialUserConfigMergesWithDefaults(t *testing.T) {
+	setIsolatedUserConfigEnv(t)
+
+	userConfigPath, err := UserConfigPath()
+	require.NoError(t, err)
+	require.NoError(t, os.MkdirAll(filepath.Dir(userConfigPath), 0o700))
+
+	userConfig := `[main]
+prompt = "custom> "
+`
+	require.NoError(t, os.WriteFile(userConfigPath, []byte(userConfig), 0o644))
+
+	cfg, err := Load()
+	require.NoError(t, err)
+	assert.NotNil(t, cfg)
+
+	assert.Equal(t, "custom> ", cfg.Main.Prompt)
+	assert.Equal(t, "monokai", cfg.Main.Style)
+	assert.Equal(t, "default", cfg.Main.HistoryFile)
+	assert.Equal(t, "default", cfg.Main.LogFile)
+}
+
+func TestLoad_InvalidUserConfig(t *testing.T) {
+	setIsolatedUserConfigEnv(t)
+
+	userConfigPath, err := UserConfigPath()
+	require.NoError(t, err)
+	require.NoError(t, os.MkdirAll(filepath.Dir(userConfigPath), 0o700))
+
+	invalidConfig := `this is not valid toml [[[`
+	require.NoError(t, os.WriteFile(userConfigPath, []byte(invalidConfig), 0o644))
+
+	_, err = Load()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "read user config")
+}
+
+func TestUserConfigPath(t *testing.T) {
+	path, err := UserConfigPath()
+	require.NoError(t, err)
+	assert.NotEmpty(t, path)
+	assert.Contains(t, path, appName)
+}
+
+func TestEnsureUserConfig_CreatesConfigOnFirstRun(t *testing.T) {
 	tempDir := t.TempDir()
 	configPath := filepath.Join(tempDir, "config.toml")
-	expectedCfg := Config{
-		Main: main{
-			Prompt:      "\\u@\\h:\\d> ",
-			HistoryFile: "default",
-		},
-	}
-	content, err := toml.Marshal(expectedCfg)
-	assert.NoError(t, err)
 
-	writeErr := os.WriteFile(configPath, content, 0o644)
-	assert.NoError(t, writeErr)
+	err := ensureUserConfig(configPath)
+	require.NoError(t, err)
 
-	actualCfg, err := LoadConfig(configPath)
-	assert.NoError(t, err)
-	assert.Equal(t, expectedCfg.Main.Prompt, actualCfg.Main.Prompt)
+	assert.FileExists(t, configPath)
+
+	content, err := os.ReadFile(configPath)
+	require.NoError(t, err)
+	assert.Contains(t, string(content), "[main]")
+	assert.Contains(t, string(content), "prompt")
+	assert.Contains(t, string(content), "style")
 }
 
-func TestLoadConfig_MissingFile(t *testing.T) {
-	_, err := LoadConfig("non_existent_config.toml")
-	assert.Error(t, err)
-}
-
-func TestSaveConfig(t *testing.T) {
+func TestEnsureUserConfig_DoesNotOverwriteExisting(t *testing.T) {
 	tempDir := t.TempDir()
 	configPath := filepath.Join(tempDir, "config.toml")
 
-	err := SaveConfig(configPath)
-	assert.NoError(t, err)
+	customContent := `[main]
+prompt = "custom> "
+style = "dracula"
+history_file = "custom"
+log_file = "custom"
+`
+	require.NoError(t, os.WriteFile(configPath, []byte(customContent), 0o644))
 
-	loadedCfg, err := LoadConfig(configPath)
-	assert.NoError(t, err)
+	err := ensureUserConfig(configPath)
+	require.NoError(t, err)
 
-	assert.Equal(t, "default", loadedCfg.Main.HistoryFile)
+	content, err := os.ReadFile(configPath)
+	require.NoError(t, err)
+	assert.Equal(t, customContent, string(content))
 }
 
-func TestSaveConfig_CreatesDirWithRestrictivePermission(t *testing.T) {
+func TestEnsureUserConfig_CreatesDirectoryWithRestrictivePermissions(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("directory permission bits are not reliable on Windows")
 	}
 
 	tempDir := t.TempDir()
-	configPath := filepath.Join(tempDir, "nested", "config.toml")
+	configPath := filepath.Join(tempDir, "nested", "deep", "config.toml")
 
-	err := SaveConfig(configPath)
-	assert.NoError(t, err)
+	err := ensureUserConfig(configPath)
+	require.NoError(t, err)
 
-	info, err := os.Stat(filepath.Dir(configPath))
-	assert.NoError(t, err)
+	parentDir := filepath.Dir(configPath)
+	info, err := os.Stat(parentDir)
+	require.NoError(t, err)
 	assert.Equal(t, os.FileMode(0o700), info.Mode().Perm())
-}
-
-func TestMergeConfig(t *testing.T) {
-	testCase := []struct {
-		name        string
-		baseCfg     Config
-		overrideCfg Config
-		expectedCfg Config
-	}{
-		{
-			name: "override history file",
-			baseCfg: Config{
-				Main: main{
-					Prompt:      "\\u@\\h:\\d> ",
-					Style:       "monokai",
-					HistoryFile: "default",
-					LogFile:     "default",
-				},
-			},
-			overrideCfg: Config{
-				Main: main{
-					Prompt:      "\\u@\\h:\\d> ",
-					Style:       "monokai",
-					HistoryFile: "custom_history.txt",
-				},
-			},
-			expectedCfg: Config{
-				Main: main{
-					Prompt:      "\\u@\\h:\\d> ",
-					Style:       "monokai",
-					HistoryFile: "custom_history.txt",
-					LogFile:     "default",
-				},
-			},
-		},
-		{
-			name: "override log file",
-			baseCfg: Config{
-				Main: main{
-					Prompt:      "\\u@\\h:\\d> ",
-					Style:       "monokai",
-					HistoryFile: "default",
-					LogFile:     "default",
-				},
-			},
-			overrideCfg: Config{
-				Main: main{
-					Prompt:  "\\u@\\h:\\d> ",
-					Style:   "monokai",
-					LogFile: "custom_log.txt",
-				},
-			},
-			expectedCfg: Config{
-				Main: main{
-					Prompt:      "\\u@\\h:\\d> ",
-					Style:       "monokai",
-					HistoryFile: "default",
-					LogFile:     "custom_log.txt",
-				},
-			},
-		},
-		{
-			name: "override prompt",
-			baseCfg: Config{
-				Main: main{
-					Prompt:      "\\u@\\h:\\d> ",
-					Style:       "monokai",
-					HistoryFile: "default",
-					LogFile:     "default",
-				},
-			},
-			overrideCfg: Config{
-				Main: main{
-					Prompt: "\\u@\\h:\\d$ ",
-					Style:  "monokai",
-				},
-			},
-			expectedCfg: Config{
-				Main: main{
-					Prompt:      "\\u@\\h:\\d$ ",
-					Style:       "monokai",
-					HistoryFile: "default",
-					LogFile:     "default",
-				},
-			},
-		},
-		{
-			name: "override style",
-			baseCfg: Config{
-				Main: main{
-					Prompt:      "\\u@\\h:\\d> ",
-					Style:       "monokai",
-					HistoryFile: "default",
-					LogFile:     "default",
-				},
-			},
-			overrideCfg: Config{
-				Main: main{
-					Style: "dracula",
-				},
-			},
-			expectedCfg: Config{
-				Main: main{
-					Prompt:      "\\u@\\h:\\d> ",
-					Style:       "dracula",
-					HistoryFile: "default",
-					LogFile:     "default",
-				},
-			},
-		},
-		{
-			name: "no override",
-			baseCfg: Config{
-				Main: main{
-					Prompt:      "\\u@\\h:\\d> ",
-					Style:       "monokai",
-					HistoryFile: "default",
-					LogFile:     "default",
-				},
-			},
-			overrideCfg: Config{},
-			expectedCfg: Config{
-				Main: main{
-					Prompt:      "\\u@\\h:\\d> ",
-					Style:       "monokai",
-					HistoryFile: "default",
-					LogFile:     "default",
-				},
-			},
-		},
-		{
-			name: "override all fields",
-			baseCfg: Config{
-				Main: main{
-					Prompt:      "\\u@\\h:\\d> ",
-					Style:       "monokai",
-					HistoryFile: "default",
-					LogFile:     "default",
-				},
-			},
-			overrideCfg: Config{
-				Main: main{
-					Prompt:      "\\u@\\h:\\d$ ",
-					Style:       "dracula",
-					HistoryFile: "custom_history.txt",
-					LogFile:     "custom_log.txt",
-				},
-			},
-			expectedCfg: Config{
-				Main: main{
-					Prompt:      "\\u@\\h:\\d$ ",
-					Style:       "dracula",
-					HistoryFile: "custom_history.txt",
-					LogFile:     "custom_log.txt",
-				},
-			},
-		},
-	}
-
-	for _, tc := range testCase {
-		t.Run(tc.name, func(t *testing.T) {
-			resultCfg := MergeConfig(tc.baseCfg, tc.overrideCfg)
-			assert.Equal(t, tc.expectedCfg.Main.Prompt, resultCfg.Main.Prompt)
-			assert.Equal(t, tc.expectedCfg.Main.Style, resultCfg.Main.Style)
-			assert.Equal(t, tc.expectedCfg.Main.HistoryFile, resultCfg.Main.HistoryFile)
-			assert.Equal(t, tc.expectedCfg.Main.LogFile, resultCfg.Main.LogFile)
-		})
-	}
 }

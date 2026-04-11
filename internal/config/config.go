@@ -2,95 +2,103 @@ package config
 
 import (
 	"bytes"
-	_ "embed"
+	"fmt"
 	"os"
 	"path/filepath"
 
-	"github.com/BurntSushi/toml"
+	"github.com/spf13/viper"
 )
 
 const (
 	// default stores the default value
 	Default  = "default"
 	filename = "config.toml"
+	appName  = "pgxcli"
 )
-
-//go:embed config.toml
-var defaultConfigFile []byte
 
 // config represents the high level configuration
 type Config struct {
-	Main main `toml:"main"`
+	Main main `mapstructure:"main" toml:"main"`
 }
 
 type main struct {
-	Prompt      string `toml:"prompt"`
-	Style       string `toml:"style"`
-	HistoryFile string `toml:"history_file"`
-	LogFile     string `toml:"log_file"`
+	Prompt      string `mapstructure:"prompt" toml:"prompt"`
+	Style       string `mapstructure:"style" toml:"style"`
+	HistoryFile string `mapstructure:"history_file" toml:"history_file"`
+	LogFile     string `mapstructure:"log_file" toml:"log_file"`
 }
 
-// default configuration
-var DefaultConfig Config
-
-func init() {
-	_, err := toml.NewDecoder(bytes.NewReader(defaultConfigFile)).Decode(&DefaultConfig)
+// Load reads the embedded default configuration and merges with user configuration.
+func Load() (*Config, error) {
+	userPath, err := UserConfigPath()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
+	if err := ensureUserConfig(userPath); err != nil {
+		return nil, err
+	}
+
+	defaultV := viper.New()
+	defaultV.SetConfigType("toml")
+	if err := defaultV.ReadConfig(bytes.NewReader(defaultConfigFile)); err != nil {
+		return nil, fmt.Errorf("read default config: %w", err)
+	}
+
+	userV := viper.New()
+	userV.SetConfigFile(userPath)
+	if err := userV.ReadInConfig(); err != nil {
+		return nil, fmt.Errorf("read user config: %w", err)
+	}
+
+	// user settings land on top of default settings
+	if err := defaultV.MergeConfigMap(userV.AllSettings()); err != nil {
+		return nil, fmt.Errorf("merge configs: %w", err)
+	}
+
+	var cfg Config
+	if err := defaultV.Unmarshal(&cfg); err != nil {
+		return nil, fmt.Errorf("unmarshal config: %w", err)
+	}
+
+	if err := validate(cfg); err != nil {
+		return nil, fmt.Errorf("validate config: %w", err)
+	}
+	return &cfg, nil
 }
 
-// returns the configuration directory or error, example: ~/.config/pgxcli
-func GetConfigDir() (string, error) {
+func GetDefaultConfig() (*Config, error) {
+	defaultV := viper.New()
+	defaultV.SetConfigType("toml")
+	if err := defaultV.ReadConfig(bytes.NewReader(defaultConfigFile)); err != nil {
+		return nil, fmt.Errorf("read default config: %w", err)
+	}
+
+	var cfg Config
+	if err := defaultV.Unmarshal(&cfg); err != nil {
+		return nil, fmt.Errorf("unmarshal config: %w", err)
+	}
+	return &cfg, nil
+}
+
+// returns the configuration file path or error, example: ~/.config/pgxcli/config.toml
+func UserConfigPath() (string, error) {
 	userdir, err := os.UserConfigDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(userdir, "pgxcli"), nil
+	return filepath.Join(userdir, appName, filename), nil
 }
 
-// loads the configuration in the provided path
-func LoadConfig(path string) (config Config, err error) {
-	var cfg Config
-	_, err = toml.DecodeFile(path, &cfg)
-	return cfg, err
-}
-
-// ensures the configuration exists in the given directory
-func CheckConfigExists(configDir string) (string, bool) {
-	path := filepath.Join(configDir, filename)
-	_, err := os.Stat(path)
-	if os.IsNotExist(err) {
-		return path, false
+// ensureUserConfig write embed on firt run
+func ensureUserConfig(path string) error {
+	if _, err := os.Stat(path); err == nil {
+		return nil
 	}
-	return path, true
-}
-
-// used to save the default configuration when default configuration doesn't exist
-func SaveConfig(path string) error {
-	dir := filepath.Dir(path)
-	err := os.MkdirAll(dir, 0o700)
-	if err != nil {
-		return err
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return fmt.Errorf("create config directory: %w", err)
 	}
-
-	return os.WriteFile(path, defaultConfigFile, 0o644)
-}
-
-func MergeConfig(defaultConfig, userConfig Config) Config {
-	mergedConfig := defaultConfig
-
-	setIfNotEmpty := func(defaultValue, userValue string) string {
-		if userValue != "" {
-			return userValue
-		}
-		return defaultValue
+	if err := os.WriteFile(path, defaultConfigFile, 0o644); err != nil {
+		return fmt.Errorf("write default config: %w", err)
 	}
-
-	mergedConfig.Main.Prompt = setIfNotEmpty(defaultConfig.Main.Prompt, userConfig.Main.Prompt)
-	mergedConfig.Main.Style = setIfNotEmpty(defaultConfig.Main.Style, userConfig.Main.Style)
-	mergedConfig.Main.HistoryFile = setIfNotEmpty(defaultConfig.Main.HistoryFile, userConfig.Main.HistoryFile)
-	mergedConfig.Main.LogFile = setIfNotEmpty(defaultConfig.Main.LogFile, userConfig.Main.LogFile)
-
-	return mergedConfig
+	return nil
 }

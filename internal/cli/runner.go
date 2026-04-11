@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/signal"
 	osuser "os/user"
-	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -33,17 +32,17 @@ func run(_ *cobra.Command, args []string) {
 	dbName, user := resolveDBAndUser(opts.DBNameOpt, opts.UsernameOpt, argDB, argUser)
 
 	// Load config
-	cfg := getConfig()
-
-	logFilePath := cfg.Main.LogFile
-	if logFilePath == "default" {
-		configPath, err := config.GetConfigDir()
+	cfg, err := config.Load()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "unable to load configuration, using the default configuration\n")
+		cfg, err = config.GetDefaultConfig()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "warning: could not get config dir for logging: %v\n", err)
+			fmt.Fprintf(os.Stderr, "unable to get default configuration\n")
+			os.Exit(1)
 		}
-		logFilePath = filepath.Join(configPath, "pgxcli.log")
 	}
-	log := logger.InitLogger(opts.Debug, logFilePath)
+
+	log := logger.InitLogger(opts.Debug, cfg.Main.LogFile)
 	defer func() {
 		if err := log.Close(); err != nil {
 			fmt.Fprintf(os.Stderr, "warning: failed to close log file: %v\n", err)
@@ -131,28 +130,4 @@ func getConnectionMode(db string) string {
 		return "connection_string"
 	}
 	return "fields"
-}
-
-func getConfig() *config.Config {
-	cfg := config.DefaultConfig
-	configDir, err := config.GetConfigDir()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "unable to get configuration directory, using the default configuration\n")
-	}
-
-	configPath, exists := config.CheckConfigExists(configDir)
-	if exists {
-		userCfg, err := config.LoadConfig(configPath)
-		if err == nil {
-			cfg = config.MergeConfig(cfg, userCfg)
-		} else {
-			fmt.Fprintf(os.Stderr, "unable to load user configuration\nerr:%v", err)
-		}
-	} else {
-		err := config.SaveConfig(configPath)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to save config %v\n", err)
-		}
-	}
-	return &cfg
 }

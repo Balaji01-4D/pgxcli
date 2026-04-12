@@ -18,7 +18,8 @@ func TestInitLogger_CreatesLogFileWithOwnerOnlyPermissions(t *testing.T) {
 
 	logPath := filepath.Join(t.TempDir(), "app.log")
 
-	logger := InitLogger(false, logPath)
+	logger, err := InitLogger(false, logPath)
+	assert.NoError(t, err)
 	t.Cleanup(func() {
 		_ = logger.Close()
 	})
@@ -30,41 +31,12 @@ func TestInitLogger_CreatesLogFileWithOwnerOnlyPermissions(t *testing.T) {
 	assert.Equal(t, os.FileMode(0o600), info.Mode().Perm())
 }
 
-func TestInitLogger_FallsBackToStderrWhenPathIsDirectory(t *testing.T) {
+func TestInitLogger_ReturnsErrorWhenPathIsDirectory(t *testing.T) {
 	dirPath := t.TempDir()
 
-	originalStderr := os.Stderr
-	reader, writer, err := os.Pipe()
-	assert.NoError(t, err)
-	writerClosed := false
-	closeWriter := func() {
-		if writerClosed {
-			return
-		}
-		_ = writer.Close()
-		writerClosed = true
-	}
-	os.Stderr = writer
-	t.Cleanup(func() {
-		os.Stderr = originalStderr
-		closeWriter()
-		_ = reader.Close()
-	})
-
-	logger := InitLogger(false, dirPath)
-	t.Cleanup(func() {
-		_ = logger.Close()
-	})
-
-	assert.Nil(t, logger.file)
-
-	const logMessage = "stderr fallback test message"
-	logger.Info(logMessage)
-
-	closeWriter()
-	output, readErr := io.ReadAll(reader)
-	assert.NoError(t, readErr)
-	assert.Contains(t, string(output), logMessage)
+	logger, err := InitLogger(false, dirPath)
+	assert.Error(t, err)
+	assert.Nil(t, logger)
 }
 
 func TestNopLogger(t *testing.T) {
@@ -73,12 +45,6 @@ func TestNopLogger(t *testing.T) {
 	assert.NotNil(t, logger.Logger)
 
 	logger.Info("this should be discarded")
-}
-
-func TestNewStderrLogger(t *testing.T) {
-	logger := newStderrLogger(&slog.HandlerOptions{})
-	assert.Nil(t, logger.file)
-	assert.NotNil(t, logger.Logger)
 }
 
 func TestClose_WithNilFile(t *testing.T) {

@@ -5,25 +5,41 @@ import (
 	"fmt"
 	"os"
 	"os/user"
+	"strconv"
 	"strings"
 
 	"github.com/balaji01-4d/pgxcli/internal/app"
 	"github.com/balaji01-4d/pgxcli/internal/config"
 	"github.com/balaji01-4d/pgxcli/internal/database"
 	"github.com/balaji01-4d/pgxcli/internal/logger"
+	"github.com/balaji01-4d/pgxcli/internal/ui"
 	"github.com/spf13/cobra"
 )
 
-var version = "0.1.0"
+var (
+	version = "0.1.0"
+	osUser  = osUsername()
+)
 
 func NewRootCmd(ctx context.Context, cliCtx *CliContext) *cobra.Command {
-	var debugFlag debugFlag
-	var hostFlag hostFlag
-	var portFlag portFlag
-	var dbNameFlag dbNameFlag
-	var usernameFlag usernameFlag
-	var neverPromptFlag neverPromptFlag
-	var forcePromptFlag forcePromptFlag
+	var (
+		debugFlag           debugFlag
+		hostFlag            hostFlag
+		portFlag            portFlag
+		dbNameFlag          dbNameFlag
+		usernameFlag        usernameFlag
+		neverPromptFlag     neverPromptFlag
+		forcePromptFlag     forcePromptFlag
+		interactiveConnFlag interactiveConnFlag
+	)
+
+	var (
+		finalDatabase string
+		finalUser     string
+		finalHost     string
+		finalPort     uint16
+		finalPassword string
+	)
 
 	rootCmd := &cobra.Command{
 		Use:     "pgxcli [DBNAME] [USERNAME]",
@@ -49,30 +65,47 @@ func NewRootCmd(ctx context.Context, cliCtx *CliContext) *cobra.Command {
 		},
 
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			var argDB string
-			var argUser string
-			if len(args) > 0 {
-				argDB = args[0]
-			}
-			if len(args) > 1 {
-				argUser = args[1]
-			}
-			dbName, userName := resolveDBAndUser(string(dbNameFlag), string(usernameFlag), argDB, argUser)
-			if userName != "" {
-				userName = getUserFromEnv()
-				if userName == "" {
-					currentUser, err := user.Current()
-					if err != nil {
-						return err
-					}
-					userName = currentUser.Username
-					if strings.Contains(userName, "\\") {
-						userName = userName[strings.LastIndex(userName, "\\")+1:]
-					}
+			argDB, argUser := parsePositionalDBAndUser(args)
+
+			if bool(interactiveConnFlag) {
+				// In interactive mode, flags / args are used as defaults
+				// User can overrid them in the form
+				// Priority is flag, arg, env, default
+				var formUser string
+				var formHost, formPort string
+				formDB := firstNonEmpty(string(dbNameFlag), argDB)
+				// TODO: implement getDefaultDB
+
+				formUser = firstNonEmpty(string(usernameFlag), argUser, getDefaultUser())
+
+				if cmd.Flags().Changed("host") {
+					formHost = string(hostFlag)
 				}
-			}
-			if dbName == "" {
-				dbName = userName
+				if cmd.Flags().Changed("port") {
+					formPort = strconv.FormatUint(uint64(portFlag), 10)
+				}
+
+				connValues, err := ui.RunConnectionForm(formDB, formUser, formHost, formPort)
+				if err != nil {
+					return err
+				}
+
+				finalDatabase = connValues.Database
+				finalUser = connValues.Username
+				finalHost = connValues.Host         // might be empty
+				finalPassword = connValues.Password // might be empty
+				if connValues.Port != "" {
+					// ignoring error since the form validation ensures it's a valid port number
+					finalPort = mustParsePort(connValues.Port)
+				}
+			} else {
+				// non interactive mode, resolve database and user from flags and args
+				finalDatabase, finalUser = resolveDBAndUser(string(dbNameFlag), string(usernameFlag), argDB, argUser)
+				finalHost = string(hostFlag)
+				finalPort = uint16(portFlag)
+				if finalUser == "" {
+					finalUser = getDefaultUser()
+				}
 			}
 
 			postgres := database.New(cliCtx.Logger.Logger)
@@ -80,42 +113,47 @@ func NewRootCmd(ctx context.Context, cliCtx *CliContext) *cobra.Command {
 
 			var connector database.Connector
 			var connErr error
-			if strings.Contains(dbName, "://") || strings.Contains(dbName, "=") {
-				connector, connErr = database.NewPGConnectorFromConnString(dbName)
+			if strings.Contains(finalDatabase, "://") || strings.Contains(finalDatabase, "=") {
+				connector, connErr = database.NewPGConnectorFromConnString(finalDatabase)
 				if connErr != nil {
 					cliCtx.Logger.Error("Invalid Connection string", "error", connErr)
 					return connErr
 				}
+
+				cliCtx.Logger.Debug("Attempting database connection using connection string")
+				connErr = cliCtx.Client.Connect(ctx, connector)
+				if connErr != nil {
+					cliCtx.Logger.Error("Failed to connect to database", "error", connErr)
+					return connErr
+				}
 			} else {
 				cliCtx.Logger.Debug("using field-based connection",
-					"host", hostFlag,
-					"port", portFlag,
-					"database", dbName,
-					"user", userName,
+					"host", finalHost,
+					"port", finalPort,
+					"database", finalDatabase,
+					"user", finalUser,
 				)
-				var password string
-				if bool(neverPromptFlag) {
-					password = getPasswordFromEnv()
+
+				if bool(neverPromptFlag) && finalPassword == "" {
+					finalPassword = getPasswordFromEnv()
 				}
 
-				if bool(forcePromptFlag) && password == "" {
+				if bool(forcePromptFlag) && finalPassword == "" {
 					// Force prompt for password
 					// TODO: Implement secure passowrd input
-					var pwd string
-					fmt.Print("Password: ")
-					_, err := fmt.Scanln(&pwd)
-					if err != nil {
-						return err
+					pwd, promptErr := promptPassword()
+					if promptErr != nil {
+						return promptErr
 					}
-					password = pwd
+					finalPassword = pwd
 				}
 
 				connector, connErr = database.NewPGConnectorFromFields(
-					string(hostFlag),
-					dbName,
-					userName,
-					password,
-					uint16(portFlag),
+					finalHost,
+					finalDatabase,
+					finalUser,
+					finalPassword,
+					finalPort,
 				)
 				if connErr != nil {
 					cliCtx.Logger.Error("Failed to create connector", "error", connErr)
@@ -127,9 +165,7 @@ func NewRootCmd(ctx context.Context, cliCtx *CliContext) *cobra.Command {
 				if connErr != nil {
 					if shouldAskForPassword(connErr, bool(neverPromptFlag)) {
 						cliCtx.Logger.Debug("Connection failed, prompting for password")
-						var pwd string
-						fmt.Print("Password: ")
-						_, err := fmt.Scanln(&pwd)
+						pwd, err := promptPassword()
 						if err != nil {
 							return err
 						}
@@ -206,6 +242,9 @@ func NewRootCmd(ctx context.Context, cliCtx *CliContext) *cobra.Command {
 	usernameFlag.bind(rootCmd)
 	neverPromptFlag.bind(rootCmd)
 	forcePromptFlag.bind(rootCmd)
+	interactiveConnFlag.bind(rootCmd)
+
+	rootCmd.MarkFlagsMutuallyExclusive("no-password", "password")
 
 	return rootCmd
 }
@@ -218,16 +257,6 @@ func getUserFromEnv() string {
 	}
 	if userEnv := os.Getenv("PGUSER"); userEnv != "" {
 		return userEnv
-	}
-	return ""
-}
-
-func getPasswordFromEnv() string {
-	if passEnv := os.Getenv("PGXPASSWORD"); passEnv != "" {
-		return passEnv
-	}
-	if passEnv := os.Getenv("PGPASSWORD"); passEnv != "" {
-		return passEnv
 	}
 	return ""
 }
@@ -251,4 +280,65 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+func parsePositionalDBAndUser(args []string) (string, string) {
+	var db string
+	var user string
+	if len(args) > 0 {
+		db = args[0]
+	}
+	if len(args) > 1 {
+		user = args[1]
+	}
+	return db, user
+}
+
+func promptPassword() (string, error) {
+	var pwd string
+	fmt.Print("Password: ")
+	_, err := fmt.Scanln(&pwd)
+	if err != nil {
+		return "", err
+	}
+	return pwd, nil
+}
+
+func mustParsePort(port string) uint16 {
+	portNum, _ := strconv.Atoi(port)
+	return uint16(portNum)
+}
+
+// getDefaultUser gets the default username
+// priority order:
+// PGXUSER environment variable
+// PGUSER environment variable
+// OS user
+func getDefaultUser() string {
+	if user := getUserFromEnv(); user != "" {
+		return user
+	}
+	return osUser
+}
+
+func getPasswordFromEnv() string {
+	if passEnv := os.Getenv("PGXPASSWORD"); passEnv != "" {
+		return passEnv
+	}
+	if passEnv := os.Getenv("PGPASSWORD"); passEnv != "" {
+		return passEnv
+	}
+	return ""
+}
+
+func osUsername() string {
+	currentUser, err := user.Current()
+	if err != nil {
+		return ""
+	}
+	username := currentUser.Username
+	if strings.Contains(username, "\\") {
+		username = username[strings.LastIndex(username, "\\")+1:]
+	}
+	return username
 }

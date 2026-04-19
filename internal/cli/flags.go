@@ -44,3 +44,9 @@ type debugFlag bool
 func (f *debugFlag) bind(cmd *cobra.Command) {
 	cmd.Flags().BoolVar((*bool)(f), "debug", false, "Enable debug mode for verbose logging.")
 }
+
+type interactiveConnFlag bool
+
+func (f *interactiveConnFlag) bind(cmd *cobra.Command) {
+	cmd.Flags().BoolVarP((*bool)(f), "interactive", "i", false, "Interactive connection mode")
+}

@@ -1,7 +1,9 @@
 package cliio
 
 import (
+	"bytes"
 	"errors"
+	"io"
 	"strings"
 	"syscall"
 	"testing"
@@ -80,4 +82,22 @@ func TestShouldUsePager(t *testing.T) {
 	assert.False(t, basePrinter.shouldUsePager("small output"))
 	assert.True(t, basePrinter.shouldUsePager(strings.Repeat("a", autoPagerMinBytes)))
 	assert.True(t, basePrinter.shouldUsePager(strings.Repeat("line\n", 10)))
+}
+
+func TestEnsureTrailingNewline(t *testing.T) {
+	assert.Equal(t, "", ensureTrailingNewline(""))
+	assert.Equal(t, "hello\n", ensureTrailingNewline("hello"))
+	assert.Equal(t, "hello\n", ensureTrailingNewline("hello\n"))
+}
+
+func TestPrintViaPager_AppendsNewlineWhenNotPresent(t *testing.T) {
+	out := &bytes.Buffer{}
+	p := &PgxPrinter{
+		out:       out,
+		errOut:    io.Discard,
+		pagerMode: PagerModeNever,
+	}
+
+	p.PrintViaPager("SELECT 9")
+	assert.Equal(t, "SELECT 9\n", out.String())
 }

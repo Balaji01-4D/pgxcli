@@ -111,15 +111,17 @@ func (p *PgxPrinter) PrintTime(time time.Duration) {
 }
 
 func (p *PgxPrinter) PrintViaPager(str string) {
+	output := ensureTrailingNewline(str)
+
 	if !p.shouldUsePager(str) {
-		if _, err := io.WriteString(p.out, str); err != nil {
+		if _, err := io.WriteString(p.out, output); err != nil {
 			p.PrintError(err)
 		}
 		return
 	}
 
 	err := p.echoViaPager(func(w io.Writer) error {
-		_, err := io.WriteString(w, str)
+		_, err := io.WriteString(w, output)
 		return err
 	})
 	if err != nil {
@@ -158,6 +160,13 @@ func lineCount(str string) int {
 		return 0
 	}
 	return strings.Count(str, "\n") + 1
+}
+
+func ensureTrailingNewline(str string) string {
+	if str == "" || strings.HasSuffix(str, "\n") {
+		return str
+	}
+	return str + "\n"
 }
 
 func (p *PgxPrinter) echoViaPager(writeFn func(io.Writer) error) error {

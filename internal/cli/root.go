@@ -190,7 +190,7 @@ func NewRootCmd(ctx context.Context, cliCtx *CliContext) *cobra.Command {
 				return err
 			}
 
-			app, err := app.NewPgxCLI(cliCtx.config, cliCtx.Printer, cliCtx.Client.Logger)
+			app, err := app.NewPgxCLI(cliCtx.config, cliCtx.Printer, cliCtx.Logger.Logger)
 			if err != nil {
 				cliCtx.Logger.Error("Failed to initialize app", "error", err)
 				return err

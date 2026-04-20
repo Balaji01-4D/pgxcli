@@ -1,3 +1,6 @@
+// client is the top most layer of database connection management and query execution.
+// client provides a high level API for connecting to database, executing queries
+// and managing connection state.
 package database
 
 import (
@@ -16,25 +19,25 @@ type Client struct {
 
 	now time.Time
 
-	Logger *slog.Logger
+	logger *slog.Logger
 }
 
 func New(logger *slog.Logger) *Client {
 	postgres := &Client{
 		now:    time.Now(),
-		Logger: logger,
+		logger: logger,
 	}
 	return postgres
 }
 
 func (c *Client) Connect(ctx context.Context, connector Connector) error {
-	exec, err := NewExecutor(ctx, connector, c.Logger)
+	exec, err := NewExecutor(ctx, connector, c.logger)
 	if err != nil {
 		return err
 	}
 	c.Executor = exec
 	c.CurrentDB = exec.Database
-	c.Logger.Info("Database connection established", "database", exec.Database, "user", exec.User)
+	c.logger.Info("Database connection established", "database", exec.Database, "user", exec.User)
 
 	return nil
 }
@@ -43,7 +46,7 @@ func (c *Client) ExecuteSpecial(ctx context.Context,
 	command string,
 ) (pgxspecial.SpecialCommandResult, bool, error) {
 	result, okay, err := pgxspecial.ExecuteSpecialCommand(ctx, c.Executor.Conn, command)
-	c.Logger.Info("Executed special command", "command", command, "result", result, "okay", okay, "err", err)
+	c.logger.Info("Executed special command", "command", command, "result", result, "okay", okay, "err", err)
 	return result, okay, err
 }
 
@@ -74,7 +77,7 @@ func (c *Client) ChangeDatabase(ctx context.Context, dbName string) error {
 	exec, err := NewExecutor(
 		ctx,
 		connector,
-		c.Logger,
+		c.logger,
 	)
 	if err != nil {
 		return err
@@ -85,12 +88,12 @@ func (c *Client) ChangeDatabase(ctx context.Context, dbName string) error {
 
 	if oldExecutor != nil {
 		if err := oldExecutor.Close(ctx); err != nil {
-			c.Logger.Error("Failed to close previous connection after database switch", "error", err)
+			c.logger.Error("Failed to close previous connection after database switch", "error", err)
 			return fmt.Errorf("database changed to %s but failed to close previous connection: %w", exec.Database, err)
 		}
 	}
 
-	c.Logger.Info("Database changed", "database", exec.Database)
+	c.logger.Info("Database changed", "database", exec.Database)
 
 	return nil
 }

@@ -22,11 +22,12 @@ type Config struct {
 }
 
 type main struct {
-	Prompt      string `mapstructure:"prompt" toml:"prompt"`
-	Style       string `mapstructure:"style" toml:"style"`
-	HistoryFile string `mapstructure:"history_file" toml:"history_file"`
-	LogFile     string `mapstructure:"log_file" toml:"log_file"`
-	Pager       string `mapstructure:"pager" toml:"pager"`
+	Prompt      string        `mapstructure:"prompt" toml:"prompt"`
+	Style       string        `mapstructure:"style" toml:"style"`
+	HistoryFile string        `mapstructure:"history_file" toml:"history_file"`
+	LogFile     string        `mapstructure:"log_file" toml:"log_file"`
+	Pager       string        `mapstructure:"pager" toml:"pager"`
+	OnError     OnErrorAction `mapstructure:"on_error" toml:"on_error"`
 }
 
 // Load reads the embedded default configuration and merges with user configuration.

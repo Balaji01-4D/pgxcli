@@ -12,6 +12,7 @@ import (
 	"github.com/balaji01-4d/pgxcli/internal/cliio"
 	"github.com/balaji01-4d/pgxcli/internal/config"
 	"github.com/balaji01-4d/pgxcli/internal/database"
+	"github.com/balaji01-4d/pgxcli/internal/parser"
 	"github.com/balaji01-4d/pgxspecial"
 	"github.com/jedib0t/go-pretty/v6/table"
 )
@@ -45,33 +46,34 @@ func NewPgxCLI(config *config.Config, printer cliio.Printer, logger *slog.Logger
 func (p *PgxCLI) Start(ctx context.Context, client *database.Client) {
 	for {
 		suffixStr := client.ParsePrompt(p.config.Main.Prompt)
-		query, err := p.prompt.Read(suffixStr, ctx)
+		rawInput, err := p.prompt.Read(suffixStr, ctx)
 		if err != nil {
 			p.logger.Error("error reading input", "error", err)
 			p.Printer.PrintError(err)
 			continue
 		}
 
-		if strings.TrimSpace(query) == "" {
+		trimmedInput := strings.TrimSpace(rawInput)
+
+		if trimmedInput == "" {
 			continue
 		}
-		start := time.Now()
+		p.logger.Debug("received command", "command_length", len(trimmedInput))
 
-		p.logger.Debug("received command", "command_length", len(query))
-
-		if cmd, ok := builtinsCommand[query]; ok {
-			p.logger.Debug("executing builtin command", "command", query)
+		if cmd, ok := builtinsCommand[trimmedInput]; ok {
+			p.logger.Debug("executing builtin command", "command", trimmedInput)
 			cmd()
 			continue
 		}
 
-		metaResult, okay, err := client.ExecuteSpecial(ctx, query)
+		metaResult, okay, err := client.ExecuteSpecial(ctx, trimmedInput)
 		if err != nil {
 			p.logger.Error("error executing special command", "error", err)
 			p.Printer.PrintError(err)
 			continue
 		}
 		if okay {
+			start := time.Now()
 			p.logger.Debug("special command executed", "result_kind", metaResult.ResultKind())
 			result, quit, err := p.handleSpecialCommand(ctx, metaResult, client)
 			if quit {
@@ -91,36 +93,35 @@ func (p *PgxCLI) Start(ctx context.Context, client *database.Client) {
 		}
 
 		p.logger.Debug("executing query")
-		queryResult, err := client.ExecuteQuery(ctx, query)
+		stmts, err := parser.SplitSqlStatement(trimmedInput)
 		if err != nil {
-			p.logger.Error("query execution failed", "error", err)
+			p.logger.Error("failed to split sql statements", "error", err)
 			p.Printer.PrintError(err)
 			continue
 		}
-		switch res := queryResult.(type) {
-		case *database.QueryResult:
-			tw, err := res.Render()
+
+	StatementsLoop:
+		for _, stmt := range stmts {
+			p.logger.Debug("parsed statement", "statement", stmt)
+			if stmt == "" {
+				continue
+			}
+
+			queryResult, err := client.ExecuteQuery(ctx, stmt)
 			if err != nil {
-				p.logger.Error("error rendering query result", "error", err)
+				p.logger.Error("query execution failed", "error", err)
+				p.Printer.PrintError(err)
+				if p.config.Main.OnError == config.OnErrorStop {
+					break StatementsLoop
+				}
+				continue
+			}
+
+			if err := p.handleQueryResult(queryResult); err != nil {
+				p.logger.Error("error handling query result", "error", err)
 				p.Printer.PrintError(err)
 				continue
 			}
-			output := tw.Render()
-			// If columns exist, we printed a table. Append the command tag (e.g., "SELECT 5", "INSERT 0 1").
-			// If no columns, we just print the command tag.
-			if len(res.Columns()) == 0 {
-				output = res.CommandTag()
-			} else {
-				output += "\n" + res.CommandTag()
-			}
-			p.Printer.PrintViaPager(output)
-			p.Printer.PrintTime(res.Duration())
-			continue
-		case *database.ExecResult:
-			p.Printer.PrintViaPager(res.Status)
-			fmt.Println()
-			p.Printer.PrintTime(res.Duration)
-			continue
 		}
 	}
 }
@@ -195,5 +196,33 @@ func (p *PgxCLI) handleSpecialCommand(ctx context.Context, metaResult pgxspecial
 
 	default:
 		return "", false, nil
+	}
+}
+
+func (p *PgxCLI) handleQueryResult(result database.Result) error {
+	switch res := result.(type) {
+	case *database.QueryResult:
+		tw, err := res.Render()
+		if err != nil {
+			return err
+		}
+		output := tw.Render()
+		// If columns exist, we printed a table. Append the command tag (e.g., "SELECT 5", "INSERT 0 1").
+		// If no columns, we just print the command tag.
+		if len(res.Columns()) == 0 {
+			output = res.CommandTag()
+		} else {
+			output += "\n" + res.CommandTag()
+		}
+		p.Printer.PrintViaPager(output)
+		p.Printer.PrintTime(res.Duration())
+		return nil
+	case *database.ExecResult:
+		p.Printer.PrintViaPager(res.Status)
+		fmt.Println()
+		p.Printer.PrintTime(res.Duration)
+		return nil
+	default:
+		return fmt.Errorf("unsupported query result type: %T", result)
 	}
 }

@@ -28,3 +28,10 @@ log_file = "default"
 # always - always use pager in interactive terminal mode
 # never  - never use pager
 pager = "auto"
+
+
+# Error handling
+# When one of multiple SQL statements causes an error, choose to either
+# continue executing the remaining statements, or stopping
+# Possible values: "STOP" or "RESUME"
+on_error = "STOP"

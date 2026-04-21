@@ -32,6 +32,7 @@ func TestLoad_Success(t *testing.T) {
 	assert.Equal(t, "default", cfg.Main.HistoryFile)
 	assert.Equal(t, "default", cfg.Main.LogFile)
 	assert.Equal(t, "auto", cfg.Main.Pager)
+	assert.Equal(t, OnErrorStop, cfg.Main.OnError)
 }
 
 func TestLoad_UserConfigOverridesDefaults(t *testing.T) {
@@ -47,6 +48,7 @@ style = "dracula"
 history_file = "/custom/history.txt"
 log_file = "/custom/log.txt"
 pager = "never"
+on_error = "RESUME"
 `
 	require.NoError(t, os.WriteFile(userConfigPath, []byte(userConfig), 0o644))
 
@@ -59,6 +61,7 @@ pager = "never"
 	assert.Equal(t, "/custom/history.txt", cfg.Main.HistoryFile)
 	assert.Equal(t, "/custom/log.txt", cfg.Main.LogFile)
 	assert.Equal(t, "never", cfg.Main.Pager)
+	assert.Equal(t, OnErrorResume, cfg.Main.OnError)
 }
 
 func TestLoad_PartialUserConfigMergesWithDefaults(t *testing.T) {
@@ -82,6 +85,7 @@ prompt = "custom> "
 	assert.Equal(t, "default", cfg.Main.HistoryFile)
 	assert.Equal(t, "default", cfg.Main.LogFile)
 	assert.Equal(t, "auto", cfg.Main.Pager)
+	assert.Equal(t, OnErrorStop, cfg.Main.OnError)
 }
 
 func TestLoad_InvalidUserConfig(t *testing.T) {
@@ -132,6 +136,7 @@ style = "dracula"
 history_file = "custom"
 log_file = "custom"
 pager = "always"
+on_error = "STOP"
 `
 	require.NoError(t, os.WriteFile(configPath, []byte(customContent), 0o644))
 

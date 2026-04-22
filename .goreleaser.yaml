@@ -3,6 +3,9 @@
 
 version: 2
 
+# Keep GoReleaser internal dist separate from CI-downloaded artifacts in ./dist.
+dist: .goreleaser-dist
+
 # Centralized final-release config: build artifacts are produced in platform jobs.
 builds:
   - id: skip
@@ -10,17 +13,29 @@ builds:
 
 release:
   name_template: "The Codename Release"
-  body_template: |-
-    [{{ .Tag }}] - {{ .Date }}
+  mode: keep-existing
+  replace_existing_artifacts: true
+  prerelease: auto
+  make_latest: true
+  header: |-
+    ## [{{ .Tag }}] - {{ .Date }}
 
-    Added
+    ### Added
     - [Placeholder]
 
-    Changed
+    ### Changed
     - [Placeholder]
 
-    Fixed
+    ### Fixed
     - [Placeholder]
+  extra_files:
+    - glob: dist/**/*.zip
+    - glob: dist/**/*.tar.gz
+    - glob: dist/**/*.deb
+    - glob: dist/**/*.rpm
+    - glob: dist/**/*.apk
+    - glob: dist/**/*.pkg.tar.zst
+    - glob: dist/**/*.nupkg
 
 changelog:
   disable: true

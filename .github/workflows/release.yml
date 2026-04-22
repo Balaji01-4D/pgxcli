@@ -30,7 +30,7 @@ jobs:
         run: sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
       - name: Build and publish (Linux)
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@v7
         with:
           version: "~> v2"
           args: release --config .goreleaser-linux.yaml --skip=publish,announce,validate --snapshot
@@ -61,7 +61,7 @@ jobs:
           cache: true
 
       - name: Build and publish (macOS)
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@v7
         with:
           version: "~> v2"
           args: release --config .goreleaser-darwin.yaml --skip=publish,announce,validate --snapshot
@@ -99,7 +99,7 @@ jobs:
           update: true
 
       - name: Build and publish (Windows)
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@v7
         with:
           version: "~> v2"
           args: release --config .goreleaser-windows.yaml --skip=publish,announce,validate --snapshot
@@ -150,10 +150,10 @@ jobs:
           path: dist/
 
       - name: Create GitHub Release
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@v7
         with:
           version: "~> v2"
-          args: release --skip=build,validate
+          args: release --skip=validate
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}

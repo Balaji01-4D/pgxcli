@@ -13,28 +13,12 @@ builds:
     binary: "pgxcli"
     env:
       - CGO_ENABLED=1
-      - CC=x86_64-w64-mingw32-gcc
-      - CXX=x86_64-w64-mingw32-g++
+      - CC=gcc
+      - CXX=g++
     goos:
       - windows
     goarch:
       - amd64
-    ldflags:
-      - -s -w
-      - -X main.version={{.Version}}
-      - -X main.commit={{.Commit}}
-
-  - id: "pgxcli-windows-arm64"
-    main: "./cmd/pgxcli"
-    binary: "pgxcli"
-    env:
-      - CGO_ENABLED=1
-      - CC=aarch64-w64-mingw32-gcc
-      - CXX=aarch64-w64-mingw32-g++
-    goos:
-      - windows
-    goarch:
-      - arm64
     ldflags:
       - -s -w
       - -X main.version={{.Version}}

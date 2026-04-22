@@ -13,11 +13,5 @@ builds:
   - skip: true
     id: skip
  
-# Collect all per-OS checksum files
-extra_files:
-  - glob: ./dist/checksums-linux.txt
-  - glob: ./dist/checksums-darwin.txt
-  - glob: ./dist/checksums-windows.txt
- 
 checksum:
   name_template: "checksums.txt"

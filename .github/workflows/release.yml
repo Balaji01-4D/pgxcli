@@ -4,17 +4,13 @@ on:
   push:
     tags:
       - "v*.*.*"
-    workflow_dispatch: # manual trigger for testing
+  workflow_dispatch: # manual trigger for testing
 
 # Required for creating GitHub Releases and pushing to repos
 permissions:
   contents: write
 
 jobs:
-  # ──────────────────────────────────────────────
-  # Build: Linux (amd64 + arm64)
-  # Publishes: AUR, deb, rpm, apk, archlinux packages
-  # ──────────────────────────────────────────────
   build-linux:
     name: Build / Linux
     runs-on: ubuntu-latest
@@ -37,7 +33,7 @@ jobs:
         uses: goreleaser/goreleaser-action@v6
         with:
           version: "~> v2"
-          args: release --config .goreleaser-linux.yaml --skip=publish,announce,validate
+          args: release --config .goreleaser-linux.yaml --skip=publish,announce,validate --snapshot
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
@@ -49,11 +45,6 @@ jobs:
           path: dist/
           retention-days: 1
 
-  # ──────────────────────────────────────────────
-  # Build: macOS (amd64 + arm64)
-  # Publishes: Homebrew Cask
-  # Note: clang (LLVM) on macOS handles both arches natively
-  # ──────────────────────────────────────────────
   build-darwin:
     name: Build / macOS
     runs-on: macos-latest
@@ -73,7 +64,7 @@ jobs:
         uses: goreleaser/goreleaser-action@v6
         with:
           version: "~> v2"
-          args: release --config .goreleaser-darwin.yaml --skip=publish,announce,validate
+          args: release --config .goreleaser-darwin.yaml --skip=publish,announce,validate --snapshot
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
@@ -85,11 +76,6 @@ jobs:
           path: dist/
           retention-days: 1
 
-  # ──────────────────────────────────────────────
-  # Build: Windows (amd64 + arm64)
-  # Publishes: Chocolatey, winget
-  # Uses: MinGW cross-compiler on Windows runner
-  # ──────────────────────────────────────────────
   build-windows:
     name: Build / Windows
     runs-on: windows-latest
@@ -104,12 +90,19 @@ jobs:
         with:
           go-version-file: "go.mod"
           cache: true
+      
+      - name: Set up MSYS2 (MinGW Compiler for CGO)
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          install: mingw-w64-x86_64-gcc
+          update: true
 
       - name: Build and publish (Windows)
         uses: goreleaser/goreleaser-action@v6
         with:
           version: "~> v2"
-          args: release --config .goreleaser-windows.yaml --skip=publish,announce,validate
+          args: release --config .goreleaser-windows.yaml --skip=publish,announce,validate --snapshot
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
@@ -122,10 +115,6 @@ jobs:
           path: dist/
           retention-days: 1
 
-  # ──────────────────────────────────────────────
-  # Release: Merge all artifacts → GitHub Release
-  # Skips build — uses pre-built artifacts from above jobs
-  # ──────────────────────────────────────────────
   release:
     name: Release
     needs: [build-linux, build-darwin, build-windows]

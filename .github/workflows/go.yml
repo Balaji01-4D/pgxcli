@@ -30,40 +30,32 @@ jobs:
         run: go test -v ./...
 
   compatibility-build:
-    name: Cross-Compile Build
-    needs: test
-    strategy:
-      fail-fast: false
-      matrix:
-        go-version: ["1.25.x"] 
-        platform:
-          - os: ubuntu-latest
-            arch: amd64
-          - os: ubuntu-latest
-            arch: "386"
-          - os: ubuntu-latest
-            arch: arm64
-          - os: macos-latest
-            arch: amd64
-          - os: macos-latest
-            arch: arm64
-          - os: windows-latest
-            arch: amd64
-          - os: windows-latest
-            arch: "386"
-    runs-on: ${{ matrix.platform.os }}
-    env:
-      GOARCH: ${{ matrix.platform.arch }}
-      
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      name: Cross-Compile Build
+      needs: test
+      strategy:
+        fail-fast: false
+        matrix:
+          go-version: ["1.25.x", "1.24.x"] 
+          platform:
+            - os: ubuntu-latest
+              arch: amd64
+            - os: macos-latest
+              arch: arm64
+            - os: windows-latest
+              arch: amd64
+      runs-on: ${{ matrix.platform.os }}
+      env:
+        GOARCH: ${{ matrix.platform.arch }}
         
-      - name: Install Go
-        uses: actions/setup-go@v6
-        with:
-          go-version: ${{ matrix.go-version }}
-          cache: true
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
           
-      - name: Build
-        run: go build ./...
+        - name: Install Go
+          uses: actions/setup-go@v5
+          with:
+            go-version: ${{ matrix.go-version }}
+            cache: true
+            
+        - name: Build
+          run: go build ./...

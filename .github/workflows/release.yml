@@ -125,12 +125,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: "go.mod"
-          cache: true
-
       - name: Download Linux artifacts
         uses: actions/download-artifact@v8.0.1
         with:
@@ -150,12 +144,29 @@ jobs:
           path: dist/
 
       - name: Create GitHub Release
-        uses: goreleaser/goreleaser-action@v7
+        uses: softprops/action-gh-release@v2
         with:
-          version: "~> v2"
-          args: release --skip=validate --config .goreleaser.yaml
+          draft: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          name: The Codename Release
+          body: |
+            [${{ github.ref_name }}] - Placeholder
+
+            Added
+            - [Placeholder]
+
+            Changed
+            - [Placeholder]
+
+            Fixed
+            - [Placeholder]
+          files: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/*.deb
+            dist/*.rpm
+            dist/*.apk
+            dist/*.zst
+            dist/checksums*.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
-          CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}

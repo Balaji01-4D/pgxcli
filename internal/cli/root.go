@@ -34,14 +34,6 @@ func NewRootCmd(ctx context.Context, cliCtx *CliContext) *cobra.Command {
 		interactiveConnFlag interactiveConnFlag
 	)
 
-	var (
-		finalDatabase string
-		finalUser     string
-		finalHost     string
-		finalPort     uint16
-		finalPassword string
-	)
-
 	var pgKws []string
 
 	rootCmd := &cobra.Command{
@@ -51,158 +43,34 @@ func NewRootCmd(ctx context.Context, cliCtx *CliContext) *cobra.Command {
 		Args:    cobra.MaximumNArgs(2), // Database name and username are optional example: pgxcli mydb myuser
 
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			cfg, err := config.Load()
+			keywords, err := loadRuntimeDependencies(cliCtx, bool(debugFlag))
 			if err != nil {
 				return err
 			}
-			cliCtx.config = cfg
-			if err := cliCtx.Printer.SetPagerMode(cfg.Main.Pager); err != nil {
-				return err
-			}
-
-			logger, err := logger.InitLogger(bool(debugFlag), cfg.Main.LogFile)
-			if err != nil {
-				return err
-			}
-
-			cliCtx.Logger = logger
-
-			pgKws = parser.LoadPgKeywords()
-
+			pgKws = keywords
 			return nil
 		},
 
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			argDB, argUser := parsePositionalDBAndUser(args)
-
-			if bool(interactiveConnFlag) {
-				// In interactive mode, flags / args are used as defaults
-				// User can overrid them in the form
-				// Priority is flag, arg, env, default
-				var formUser string
-				var formHost, formPort string
-				formDB := firstNonEmpty(string(dbNameFlag), argDB)
-				// TODO: implement getDefaultDB
-
-				formUser = firstNonEmpty(string(usernameFlag), argUser, getDefaultUser())
-
-				if cmd.Flags().Changed("host") {
-					formHost = string(hostFlag)
-				}
-				if cmd.Flags().Changed("port") {
-					formPort = strconv.FormatUint(uint64(portFlag), 10)
-				}
-
-				connValues, err := ui.RunConnectionForm(formDB, formUser, formHost, formPort)
-				if err != nil {
-					return err
-				}
-
-				finalDatabase = connValues.Database
-				finalUser = connValues.Username
-				finalHost = connValues.Host         // might be empty
-				finalPassword = connValues.Password // might be empty
-				if connValues.Port != "" {
-					// ignoring error since the form validation ensures it's a valid port number
-					finalPort = mustParsePort(connValues.Port)
-				}
-			} else {
-				// non interactive mode, resolve database and user from flags and args
-				finalDatabase, finalUser = resolveDBAndUser(string(dbNameFlag), string(usernameFlag), argDB, argUser)
-				finalHost = string(hostFlag)
-				finalPort = uint16(portFlag)
-				if finalUser == "" {
-					finalUser = getDefaultUser()
-				}
-			}
-
-			postgres := database.New(cliCtx.Logger.Logger)
-			cliCtx.Client = postgres
-
-			var connector database.Connector
-			var connErr error
-			if strings.Contains(finalDatabase, "://") || strings.Contains(finalDatabase, "=") {
-				connector, connErr = database.NewPGConnectorFromConnString(finalDatabase)
-				if connErr != nil {
-					cliCtx.Logger.Error("Invalid Connection string", "error", connErr)
-					return connErr
-				}
-
-				cliCtx.Logger.Debug("Attempting database connection using connection string")
-				connErr = cliCtx.Client.Connect(ctx, connector)
-				if connErr != nil {
-					cliCtx.Logger.Error("Failed to connect to database", "error", connErr)
-					return connErr
-				}
-			} else {
-				cliCtx.Logger.Debug("using field-based connection",
-					"host", finalHost,
-					"port", finalPort,
-					"database", finalDatabase,
-					"user", finalUser,
-				)
-
-				if bool(neverPromptFlag) && finalPassword == "" {
-					finalPassword = getPasswordFromEnv()
-				}
-
-				if bool(forcePromptFlag) && finalPassword == "" {
-					// Force prompt for password
-					// TODO: Implement secure passowrd input
-					pwd, promptErr := promptPassword()
-					if promptErr != nil {
-						return promptErr
-					}
-					finalPassword = pwd
-				}
-
-				connector, connErr = database.NewPGConnectorFromFields(
-					finalHost,
-					finalDatabase,
-					finalUser,
-					finalPassword,
-					finalPort,
-				)
-				if connErr != nil {
-					cliCtx.Logger.Error("Failed to create connector", "error", connErr)
-					return connErr
-				}
-
-				cliCtx.Logger.Debug("Attempting database connection")
-				connErr = cliCtx.Client.Connect(ctx, connector)
-				if connErr != nil {
-					if shouldAskForPassword(connErr, bool(neverPromptFlag)) {
-						cliCtx.Logger.Debug("Connection failed, prompting for password")
-						pwd, err := promptPassword()
-						if err != nil {
-							return err
-						}
-						connector.UpdatePassword(pwd)
-						connRetryErr := cliCtx.Client.Connect(ctx, connector)
-						if connRetryErr != nil {
-							cliCtx.Logger.Error("Connection retry failed", "error", connRetryErr)
-							return connRetryErr
-						}
-					} else {
-						cliCtx.Logger.Error("Failed to connect to database", "error", connErr)
-						return connErr
-					}
-				}
-			}
-			if !cliCtx.Client.IsConnected() {
-				err := fmt.Errorf("failed to connect to database")
-				cliCtx.Logger.Error("Failed to connect to database", "error", err)
-				return err
-			}
-
-			app, err := app.New(cliCtx.config, cliCtx.Printer, cliCtx.Logger.Logger)
+			params, err := resolveConnectionParams(
+				cmd,
+				args,
+				bool(interactiveConnFlag),
+				string(dbNameFlag),
+				string(usernameFlag),
+				string(hostFlag),
+				uint16(portFlag),
+			)
 			if err != nil {
-				cliCtx.Logger.Error("Failed to initialize app", "error", err)
 				return err
 			}
-			app.SetAutocompleter(pgKws)
-			cliCtx.App = app
-			return nil
+			if err := connectClient(ctx, cliCtx, params, bool(neverPromptFlag), bool(forcePromptFlag)); err != nil {
+				return err
+			}
+			if err := ensureConnected(cliCtx); err != nil {
+				return err
+			}
+			return initApplication(cliCtx, pgKws)
 		},
 
 		RunE: func(_ *cobra.Command, _ []string) error {
@@ -251,6 +119,225 @@ func NewRootCmd(ctx context.Context, cliCtx *CliContext) *cobra.Command {
 	rootCmd.MarkFlagsMutuallyExclusive("no-password", "password")
 
 	return rootCmd
+}
+
+type connectionParams struct {
+	database string
+	user     string
+	host     string
+	port     uint16
+	password string
+}
+
+// loadRuntimeDependencies loads configuration, initializes logger, and loads PostgreSQL keywords.
+func loadRuntimeDependencies(cliCtx *CliContext, debug bool) ([]string, error) {
+	cfg, err := config.Load()
+	if err != nil {
+		return nil, err
+	}
+	cliCtx.config = cfg
+
+	if err := cliCtx.Printer.SetPagerMode(cfg.Main.Pager); err != nil { // Printer is initialized in main.go.
+		return nil, err
+	}
+
+	initializedLogger, err := logger.InitLogger(debug, cfg.Main.LogFile)
+	if err != nil {
+		return nil, err
+	}
+	cliCtx.Logger = initializedLogger
+
+	return parser.LoadPgKeywords(), nil
+}
+
+func resolveConnectionParams(
+	cmd *cobra.Command,
+	args []string,
+	interactive bool,
+	dbnameOpt string,
+	userOpt string,
+	hostOpt string,
+	portOpt uint16,
+) (connectionParams, error) {
+	argDB, argUser := parsePositionalDBAndUser(args)
+	if interactive {
+		return resolveInteractiveConnectionParams(cmd, argDB, argUser, dbnameOpt, userOpt, hostOpt, portOpt)
+	}
+
+	database, user := resolveDBAndUser(dbnameOpt, userOpt, argDB, argUser)
+	if user == "" {
+		user = getDefaultUser()
+	}
+
+	return connectionParams{
+		database: database,
+		user:     user,
+		host:     hostOpt,
+		port:     portOpt,
+	}, nil
+}
+
+func resolveInteractiveConnectionParams(
+	cmd *cobra.Command,
+	argDB string,
+	argUser string,
+	dbnameOpt string,
+	userOpt string,
+	hostOpt string,
+	portOpt uint16,
+) (connectionParams, error) {
+	// In interactive mode, flags / args are used as defaults.
+	// Priority is flag, arg, env, default.
+	formDB := firstNonEmpty(dbnameOpt, argDB)
+	formUser := firstNonEmpty(userOpt, argUser, getDefaultUser())
+
+	var formHost string
+	var formPort string
+	if cmd.Flags().Changed("host") {
+		formHost = hostOpt
+	}
+	if cmd.Flags().Changed("port") {
+		formPort = strconv.FormatUint(uint64(portOpt), 10)
+	}
+
+	connValues, err := ui.RunConnectionForm(formDB, formUser, formHost, formPort)
+	if err != nil {
+		return connectionParams{}, err
+	}
+
+	params := connectionParams{
+		database: connValues.Database,
+		user:     connValues.Username,
+		host:     connValues.Host,
+		password: connValues.Password,
+	}
+	if connValues.Port != "" {
+		// Ignoring error since the form validation ensures this is a valid port.
+		params.port = mustParsePort(connValues.Port)
+	}
+
+	return params, nil
+}
+
+func connectClient(
+	ctx context.Context,
+	cliCtx *CliContext,
+	params connectionParams,
+	neverPrompt bool,
+	forcePrompt bool,
+) error {
+	cliCtx.Client = database.New(cliCtx.Logger.Logger)
+
+	if strings.Contains(params.database, "://") || strings.Contains(params.database, "=") {
+		return connectWithConnString(ctx, cliCtx, params.database)
+	}
+
+	return connectWithFields(ctx, cliCtx, params, neverPrompt, forcePrompt)
+}
+
+func connectWithConnString(ctx context.Context, cliCtx *CliContext, connString string) error {
+	connector, err := database.NewPGConnectorFromConnString(connString)
+	if err != nil {
+		cliCtx.Logger.Error("Invalid Connection string", "error", err)
+		return err
+	}
+
+	cliCtx.Logger.Debug("Attempting database connection using connection string")
+	if err := cliCtx.Client.Connect(ctx, connector); err != nil {
+		cliCtx.Logger.Error("Failed to connect to database", "error", err)
+		return err
+	}
+
+	return nil
+}
+
+func connectWithFields(
+	ctx context.Context,
+	cliCtx *CliContext,
+	params connectionParams,
+	neverPrompt bool,
+	forcePrompt bool,
+) error {
+	password := params.password
+
+	cliCtx.Logger.Debug("using field-based connection",
+		"host", params.host,
+		"port", params.port,
+		"database", params.database,
+		"user", params.user,
+	)
+
+	if neverPrompt && password == "" {
+		password = getPasswordFromEnv()
+	}
+
+	if forcePrompt && password == "" {
+		pwd, err := promptPassword()
+		if err != nil {
+			return err
+		}
+		password = pwd
+	}
+
+	connector, err := database.NewPGConnectorFromFields(
+		params.host,
+		params.database,
+		params.user,
+		password,
+		params.port,
+	)
+	if err != nil {
+		cliCtx.Logger.Error("Failed to create connector", "error", err)
+		return err
+	}
+
+	cliCtx.Logger.Debug("Attempting database connection")
+	connErr := cliCtx.Client.Connect(ctx, connector)
+	if connErr == nil {
+		return nil
+	}
+
+	if !shouldAskForPassword(connErr, neverPrompt) {
+		cliCtx.Logger.Error("Failed to connect to database", "error", connErr)
+		return connErr
+	}
+
+	cliCtx.Logger.Debug("Connection failed, prompting for password")
+	pwd, err := promptPassword()
+	if err != nil {
+		return err
+	}
+
+	connector.UpdatePassword(pwd)
+	if connRetryErr := cliCtx.Client.Connect(ctx, connector); connRetryErr != nil {
+		cliCtx.Logger.Error("Connection retry failed", "error", connRetryErr)
+		return connRetryErr
+	}
+
+	return nil
+}
+
+func ensureConnected(cliCtx *CliContext) error {
+	if cliCtx.Client.IsConnected() {
+		return nil
+	}
+
+	err := fmt.Errorf("failed to connect to database")
+	cliCtx.Logger.Error("Failed to connect to database", "error", err)
+	return err
+}
+
+// initApplication Initializes the app,
+// which includes setting up the logger, config and autocompleter with PostgreSQL keywords.
+func initApplication(cliCtx *CliContext, pgKeywords []string) error {
+	initializedApp, err := app.New(cliCtx.config, cliCtx.Printer, cliCtx.Logger.Logger)
+	if err != nil {
+		cliCtx.Logger.Error("Failed to initialize app", "error", err)
+		return err
+	}
+	initializedApp.SetAutocompleter(pgKeywords)
+	cliCtx.App = initializedApp
+	return nil
 }
 
 // getUserFromEnv gets username from environment variables

@@ -1,6 +1,6 @@
-// @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import icon from 'astro-icon';
 
 // https://astro.build/config
 export default defineConfig({
@@ -10,7 +10,7 @@ export default defineConfig({
 		starlight({
 			title: 'Pgxcli',
 			logo: {
-				src: './src/assets/short-logo.png',
+				src: './src/assets/logo.png',
 			},
 			customCss: ['./src/styles/custom.css'],
 			social: [
@@ -21,19 +21,25 @@ export default defineConfig({
 				},
 			],
 			sidebar: [
+				{ label: 'Getting Started', slug: 'guides/getting-started' },
+				{ label: 'pgxcli vs pgcli', slug: 'guides/comparison-with-pgcli' },
 				{
-					label: 'Introduction',
+					label: 'Usage Guides',
 					items: [
-						{ label: 'Getting Started', slug: 'guides/getting-started' },
+						{ label: 'Connecting', slug: 'guides/connecting' },
+						{ label: 'Configuration', slug: 'guides/configuration' },
+						{ label: 'Special Commands', slug: 'guides/special-commands' },
 					],
 				},
 				{
 					label: 'Reference',
 					items: [
-						{ label: 'CLI Reference', slug: 'reference/cli-reference' },
+						{ label: 'CLI Flags', slug: 'reference/cli-reference' },
+						{ label: 'Environment Variables', slug: 'reference/environment-variables' },
 					],
 				},
 			],
 		}),
+		icon(),
 	],
 });

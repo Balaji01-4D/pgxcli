@@ -1,11 +1,11 @@
 ---
-title: Welcome to pgxcli
-description: A modern, interactive command-line client for PostgreSQL, written in Go.
-template: splash # Remove or comment out this line to display the site sidebar on this page.
+title: pgxcli
+description: An interactive PostgreSQL command-line client written in Go.
+template: splash
 hero:
-  tagline: A modern PostgreSQL CLI with autocompletion and syntax highlighting.
+  tagline: An interactive PostgreSQL client for your terminal. Syntax highlighting, smart autocompletion, and a configurable REPL — out of the box.
   image:
-    file: ../../assets/short-logo.png
+    file: ../../assets/logo.png
   actions:
     - text: Get Started
       link: guides/getting-started/
@@ -16,27 +16,21 @@ hero:
       variant: minimal
 ---
 
-import { Card, CardGrid, Aside } from '@astrojs/starlight/components';
+import { Card, CardGrid } from '@astrojs/starlight/components';
 
-<div className="not-content">
-<Aside type="caution" title="Under Active Development">
-  `pgxcli` is currently in **active development**. Features and APIs may change. The upcoming first release will feature basic syntax highlighting and word-based suggestions.
-</Aside>
-</div>
-
-## Next steps
+## Features
 
 <CardGrid stagger>
-	<Card title="Installation" icon="rocket">
-		Get up and running with `pgxcli` in minutes.
+	<Card title="Syntax Highlighting" icon="star">
+		Queries light up as you type. Powered by Chroma with 10+ built-in themes like `monokai`, `dracula`, and `nord`.
 	</Card>
-	<Card title="Features" icon="star">
-		Learn about syntax highlighting, autocompletion, and more.
+	<Card title="Smart Autocompletion" icon="rocket">
+		Tab-complete SQL keywords, table names, columns, functions, and data types — all schema-aware.
 	</Card>
-	<Card title="Configuration" icon="setting">
-		Customize your experience with command-line flags and config files.
+	<Card title="Configurable" icon="setting">
+		Customize your prompt, highlighting theme, pager behavior, and error handling via a simple TOML config file.
 	</Card>
-	<Card title="Contribution" icon="heart">
-		Find out how to contribute to the project on GitHub.
+	<Card title="Backslash Commands" icon="list-format">
+		Use familiar PostgreSQL commands like `\d`, `\dt`, `\l`, `\c`, and more — right in your REPL.
 	</Card>
 </CardGrid>

@@ -1,7 +1,3 @@
-:root {
-	--sl-content-width: 70rem;
-}
-
 /* Enhanced Transparency for Header on Hero Pages */
 [data-has-hero] header {
 	border-bottom: 1px solid transparent;

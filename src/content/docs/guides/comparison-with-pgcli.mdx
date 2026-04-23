@@ -1,0 +1,78 @@
+---
+title: Comparison with pgcli
+description: How pgxcli compares with the popular pgcli tool.
+---
+
+import { Icon } from 'astro-icon/components';
+
+export const Check = () => <Icon name="mdi:check-circle" style="color: #22c55e; display: inline-block; vertical-align: text-bottom; width: 1.25rem; height: 1.25rem;" />;
+export const Wait = () => <Icon name="mdi:clock-outline" style="color: #3b82f6; display: inline-block; vertical-align: text-bottom; width: 1.25rem; height: 1.25rem;" />;
+export const Warn = () => <Icon name="mdi:alert" style="color: #eab308; display: inline-block; vertical-align: text-bottom; width: 1.25rem; height: 1.25rem;" />;
+export const Unknown = () => <Icon name="mdi:help-circle" style="color: #6b7280; display: inline-block; vertical-align: text-bottom; width: 1.25rem; height: 1.25rem;" />;
+
+[pgcli](https://github.com/dbcli/pgcli) is an excellent, mature PostgreSQL CLI with over a decade of development and contributions from many developers. It is feature-rich, battle-tested, and has set the standard for interactive PostgreSQL clients.
+
+**pgxcli's current position (v0.1.0):** This is an early first release. We are not trying to replace pgcli; instead, we are building a complementary tool in Go with a focus on simplicity, performance, and Go-native tooling.
+
+---
+
+## When to use pgxcli vs pgcli
+
+### Use **pgxcli** if you:
+- Want a single Go binary with no Python runtime
+- Prefer TOML configuration
+- Are building Go-based PostgreSQL workflows
+- Want to contribute to an early-stage project
+- Value fast startup times
+
+### Use **pgcli** if you:
+- Need mature, battle-tested tooling for production work
+- Require advanced features like SSH tunnels, keyring integration
+- Want rich schema-aware completion today
+- Need extensive output formatting options
+- Prefer Python-based tooling
+
+Both are great! We respect [pgcli](https://github.com/dbcli/pgcli)'s legacy and recommend it for users who need its mature feature set. pgxcli is for those who want to grow with a newer project or prefer Go tooling.
+
+---
+
+## Feature Comparison Matrix
+
+| Category | Feature | pgcli (Python) | pgxcli (Go, v0.1.0) | Status |
+|---|---|---|---|---|
+| **Core UX** | Interactive REPL | <Check /> | <Check /> | Stable |
+| | Prompt format tokens | <Check /> | <Check /> | Stable |
+| | Max prompt length | <Check /> | <Check /> | Stable |
+| **SQL Editing** | Multi-line mode | <Check /> | <Wait /> | Roadmap v0.2.0 |
+| | Vi/Emacs toggle | <Check /> | <Wait /> | Roadmap |
+| **Completion** | Keyword completion | <Check /> | <Check /> | Stable |
+| | Schema-aware completion | <Check /> | <Wait /> | Roadmap v0.2.0 |
+| | Background refresh | <Check /> | <Wait /> | Roadmap v0.2.0 |
+| | Smart completion toggle | <Check /> | <Wait /> | Roadmap |
+| | Shell completion scripts | <Check /> | <Wait /> | Roadmap |
+| **Output** | Pager support | <Check /> | <Check /> | Stable |
+| | Table formatting | <Check /> (rich) | <Wait /> (basic) | Roadmap |
+| | Colored output + themes | <Check /> | <Warn /> (syntax only) | Roadmap |
+| | Syntax highlighting | <Check /> | <Check /> | Stable |
+| **Commands** | Backslash meta-commands | <Check /> | <Check /> | Stable |
+| | Built-in commands | <Check /> | <Check /> (clear) | Expanding |
+| **History** | Persistent history | <Check /> | <Check /> | Stable |
+| | History-based learning | <Check /> | <Wait /> | Roadmap |
+| **Connection**| Standard flags | <Check /> | <Check /> | Stable |
+| | DSN/URI support | <Check /> | <Wait /> | Roadmap |
+| | Environment variables | <Check /> | <Check /> | Stable |
+| | SSH tunnels | <Check /> | <Wait /> | Roadmap |
+| **Security** | Keyring integration | <Check /> | <Wait /> | Roadmap |
+| **Execution** | Multi-statement | <Check /> | <Check /> | Stable |
+| | Timing display | <Check /> | <Warn /> (logs only) | Improving |
+| **Config** | Auto-created config | <Check /> | <Check /> | Stable |
+| | Config format | INI | TOML | Different approach |
+| **UI Polish** | Status toolbar | <Check /> | <Wait /> | Roadmap |
+| | Explain mode | <Check /> | <Wait /> | Roadmap |
+| **Docs** | Dedicated docs site | <Unknown /> | <Check /> | pgxcli strength |
+
+### Legend
+- <Check /> Implemented
+- <Warn /> Partial/Basic implementation
+- <Wait /> Planned for future release
+- <Unknown /> Not verified

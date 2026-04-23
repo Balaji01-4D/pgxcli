@@ -30,6 +30,7 @@
         <li><a href="#built-with">Built With</a></li>
       </ul>
     </li>
+    <li><a href="#comparison-with-pgcli">Comparison with pgcli</a></li>
     <li>
       <a href="#getting-started">Getting Started</a>
       <ul>
@@ -60,6 +61,44 @@ Key highlights:
 * Persistent command history.
 * PostgreSQL special backslash commands (for example: `\d`, `\l`, `\dt`, `\q`).
 * Configurable error behavior for multi-statement execution (`STOP` / `RESUME`).
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- PGXCLI VS PGCLI -->
+## Comparison with pgcli
+
+[pgcli][pgcli-url] is an excellent, mature PostgreSQL CLI with 12 years of development and contributions from many developers. It is rich in feature, battle-tested, and has set the standard for interactive PostgreSQL clients.
+
+pgxcli's current position (v0.1.0): This is an early first release. We're not trying to replace pgcli instead, we're building a complementary tool in Go with a focus on simplicity, performance, and Go-native tooling.
+
+What pgxcli has today:
+* Core interactive REPL experience
+* PostgreSQL meta-commands
+* Syntax highlighting
+* Basic autocompletion (keywords)
+* History persistence
+* Pager support
+* TOML configuration
+
+<details>
+  <summary><strong>When to use pgxcli vs pgcli</strong></summary>
+
+Use **pgxcli** if you:
+* Want a single Go binary with no Python runtime
+* Prefer TOML configuration
+* Are building Go-based PostgreSQL workflows
+* Want to contribute to an early-stage project
+* Value fast startup times
+
+Use **pgcli** if you:
+* Need mature, battle-tested tooling for production work
+* Require advanced features like SSH tunnels, keyring integration
+* Want rich schema-aware completion today
+* Need extensive output formatting options
+* Prefer Python-based tooling
+
+Both are great! We respect [pgcli][pgcli-url]'s legacy and recommend it for users who need its mature feature set. pgxcli is for those who want to grow with a newer project or prefer Go tooling.
+</details>
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -134,6 +173,7 @@ Bug reports and feature requests: [GitHub Issues][issues-url]
 * [go-pretty][go-pretty-url]
 * [go-prompter][go-prompter-url]
 * [pg_query_go][pg-query-url]
+* Inspired by [pgcli][pgcli-url]
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -158,3 +198,4 @@ Bug reports and feature requests: [GitHub Issues][issues-url]
 [go-prompter-url]: https://github.com/jedib0t/go-prompter
 [pg-query-url]: https://github.com/pganalyze/pg_query_go
 [cli-reference-url]: https://github.com/Balaji01-4D/pgxcli/blob/main/docs/src/content/docs/reference/cli-reference.md
+[pgcli-url]: https://github.com/dbcli/pgcli

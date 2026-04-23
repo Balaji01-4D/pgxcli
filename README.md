@@ -11,23 +11,12 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-  <a href="https://github.com/Balaji01-4D/pgxcli">
-    <strong>pgxcli</strong>
+  <a href="https://balaji01-4d.github.io/pgxcli/">
+    <img src="https://res.cloudinary.com/dsdupsv2g/image/upload/v1776949930/logo_l1mlz5.png" alt="pgxcli banner" width="420"/>
   </a>
-
   <h3 align="center">pgxcli</h3>
-
   <p align="center">
     Interactive PostgreSQL command-line client written in Go.
-    <br />
-    <a href="https://github.com/Balaji01-4D/pgxcli/tree/main/docs"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-    <a href="#usage">View Demo</a>
-    &middot;
-    <a href="https://github.com/Balaji01-4D/pgxcli/issues/new?labels=bug">Report Bug</a>
-    &middot;
-    <a href="https://github.com/Balaji01-4D/pgxcli/issues/new?labels=enhancement">Request Feature</a>
   </p>
 </div>
 
@@ -74,69 +63,21 @@ Key highlights:
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-### Built With
-
-* [Go][go-url]
-* [pgx][pgx-url]
-* [Cobra][cobra-url]
-* [Viper][viper-url]
-* [go-pretty][go-pretty-url]
-* [go-prompter][go-prompter-url]
-* [pg_query_go][pg-query-url]
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-<!-- GETTING STARTED -->
-## Getting Started
-
-### Prerequisites
-
-* Go `1.25.8` or newer
-* A PostgreSQL server to connect to
-* `make` (recommended for build/test targets)
-
-### Installation
-
-1. Clone the repo
-   ```sh
-   git clone https://github.com/Balaji01-4D/pgxcli.git
-   cd pgxcli
-   ```
-2. Build the binary
-   ```sh
-   make build
-   ```
-3. Run the CLI
-   ```sh
-   ./bin/app --help
-   ```
-
-### Development
-
-```sh
-make build
-make test
-make lint
-make precommit
-```
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
 <!-- USAGE EXAMPLES -->
 ## Usage
 
 ```sh
 # positional arguments
-./bin/app mydb myuser
+pgxcli mydb myuser
 
 # flags
-./bin/app --host localhost --port 5432 --user postgres --dbname postgres
+pgxcli --host localhost --port 5432 --user postgres --dbname postgres
 
 # connection URI
-./bin/app postgres://user:password@localhost:5432/dbname
+pgxcli postgres://user:password@localhost:5432/dbname
 
 # interactive connection form
-./bin/app -i
+pgxcli -i
 ```
 
 For full flag documentation, see the [CLI reference][cli-reference-url].
@@ -165,19 +106,6 @@ Common settings include:
 ## Roadmap
 
 See the [open issues][issues-url] for proposed features and known issues.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-<!-- CONTRIBUTING -->
-## Contributing
-
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

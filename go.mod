@@ -5,7 +5,7 @@ go 1.25.8
 require (
 	charm.land/bubbletea/v2 v2.0.6
 	charm.land/huh/v2 v2.0.3
-	charm.land/lipgloss/v2 v2.0.2
+	charm.land/lipgloss/v2 v2.0.3
 	github.com/balaji01-4d/pgxspecial v0.2.1
 	github.com/charmbracelet/x/term v0.2.2
 	github.com/fatih/color v1.19.0

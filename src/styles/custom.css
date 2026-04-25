@@ -6,28 +6,9 @@
 	backdrop-filter: blur(16px);
 }
 
-/* Fix hero image in production builds: Astro wraps <Image> in <picture> which
-   Starlight's own ".hero > img" selector misses, causing the image to be unconstrained. */
-[data-has-hero] .hero > img,
-[data-has-hero] .hero > picture {
+/* Hero image drop shadow */
+[data-has-hero] .hero > img {
 	filter: drop-shadow(0 0 3rem var(--sl-color-accent-low));
-	object-fit: contain;
-	width: min(70%, 20rem);
-	height: auto;
-	margin-inline: auto;
-}
-
-[data-has-hero] .hero > picture > img {
-	width: 100%;
-	height: auto;
-	object-fit: contain;
-}
-
-@media (min-width: 50rem) {
-	[data-has-hero] .hero > picture {
-		order: 2;
-		width: min(100%, 25rem);
-	}
 }
 
 /* ---------------------------------------------------------

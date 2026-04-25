@@ -67,9 +67,14 @@ Key highlights:
 <!-- PGXCLI VS PGCLI -->
 ## Comparison with pgcli
 
-[pgcli][pgcli-url] is an excellent, mature PostgreSQL CLI with 12 years of development and contributions from many developers. It is rich in feature, battle-tested, and has set the standard for interactive PostgreSQL clients.
+[pgcli][pgcli-url] is an excellent, mature PostgreSQL CLI with over a decade of development. It has set the standard for interactive PostgreSQL clients.
 
-pgxcli's current position (v0.1.0): This is an early first release. We're not trying to replace pgcli instead, we're building a complementary tool in Go with a focus on simplicity, performance, and Go-native tooling.
+**pgxcli brings simplicity and speed to PostgreSQL.** If you want a single Go binary with fast startup and TOML config, it's worth exploring. For mature, production-hardened features, pgcli remains the standard.
+
+**Quick Wins with pgxcli:**
+* **Zero dependencies:** A single Go binary, no Python runtime or virtual environments needed.
+* **Instant startup:** Near-instantaneous launch times, getting you to the query prompt faster.
+* **Simple configuration:** Modern, straightforward TOML setup.
 
 What pgxcli has today:
 * Core interactive REPL experience
@@ -81,23 +86,19 @@ What pgxcli has today:
 * TOML configuration
 
 <details>
-  <summary><strong>When to use pgxcli vs pgcli</strong></summary>
+  <summary><strong>Which one should I use?</strong></summary>
 
-Use **pgxcli** if you:
-* Want a single Go binary with no Python runtime
-* Prefer TOML configuration
-* Are building Go-based PostgreSQL workflows
-* Want to contribute to an early-stage project
-* Value fast startup times
+Choose **pgxcli** if you:
+* Want a fast, single Go binary without a Python runtime
+* Prefer standard TOML configuration
+* Value minimal, focused tooling and fast startup times
+* Want to contribute to an early-stage Go project
 
-Use **pgcli** if you:
-* Need mature, battle-tested tooling for production work
-* Require advanced features like SSH tunnels, keyring integration
-* Want rich schema-aware completion today
-* Need extensive output formatting options
-* Prefer Python-based tooling
-
-Both are great! We respect [pgcli][pgcli-url]'s legacy and recommend it for users who need its mature feature set. pgxcli is for those who want to grow with a newer project or prefer Go tooling.
+Choose **pgcli** if you:
+* Need mature, battle-tested tooling for production environments
+* Require advanced features like SSH tunnels and keyring integration
+* Need rich, schema-aware completion right now
+* Prefer Python-based tools and ecosystem
 </details>
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>

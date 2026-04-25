@@ -103,6 +103,16 @@ func (c *Client) ChangeDatabase(ctx context.Context, dbName string) error {
 // ParsePrompt resolves prompt placeholders using current connection metadata.
 func (c *Client) ParsePrompt(str string) string {
 	str = strings.ReplaceAll(str, "\\t", c.now.Format("02/06/2006 15:04:05"))
+	if c.executor == nil {
+		str = strings.ReplaceAll(str, "\\u", "(nil)")
+		str = strings.ReplaceAll(str, "\\H", "(nil)")
+		str = strings.ReplaceAll(str, "\\h", "(nil)")
+		str = strings.ReplaceAll(str, "\\d", "(nil)")
+		str = strings.ReplaceAll(str, "\\p", "5432")
+		str = strings.ReplaceAll(str, "\\n", "\n")
+		return str
+	}
+
 	if c.executor.User != "" {
 		str = strings.ReplaceAll(str, "\\u", c.executor.User)
 	} else {
@@ -137,21 +147,33 @@ func (c *Client) ParsePrompt(str string) string {
 
 // GetUser returns the current connection user name.
 func (c *Client) GetUser() string {
+	if c.executor == nil {
+		return ""
+	}
 	return c.executor.User
 }
 
 // GetDatabase returns the current database name.
 func (c *Client) GetDatabase() string {
+	if c.executor == nil {
+		return ""
+	}
 	return c.executor.Database
 }
 
 // GetPort returns the current connection port.
 func (c *Client) GetPort() uint16 {
+	if c.executor == nil {
+		return 0
+	}
 	return c.executor.Port
 }
 
 // GetHost returns the current connection host.
 func (c *Client) GetHost() string {
+	if c.executor == nil {
+		return ""
+	}
 	return c.executor.Host
 }
 

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+
+  <?if $(sys.BUILDARCH) = x64 ?>
+    <?define UpgradeCode = "{3E8B2A1F-7C4D-4E9B-8F2A-1D5E6C7B8A9F}" ?>
+    <?define Win64 = "yes" ?>
+    <?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
+  <?else ?>
+    <?define UpgradeCode = "{A2C7D3E8-5B4F-4A8C-9E1D-2F6B7C8D9E0A}" ?>
+    <?define Win64 = "no" ?>
+    <?define PlatformProgramFilesFolder = "ProgramFilesFolder" ?>
+  <?endif ?>
+
+  <Product Id="*"
+           Name="pgxcli"
+           Language="1033"
+           Version="$(var.ProductVersion)"
+           Manufacturer="Balaji J"
+           UpgradeCode="$(var.UpgradeCode)">
+
+    <Package InstallerVersion="500"
+             Compressed="yes"
+             InstallScope="perMachine"
+             Platform="$(sys.BUILDARCH)"/>
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of pgxcli is already installed." />
+    <MediaTemplate EmbedCab="yes"/>
+
+    <UIRef Id="PgxcliInstallUI"/>
+
+    <Feature Id="ProductFeature" Title="pgxcli" Level="1">
+      <ComponentGroupRef Id="ProductComponents"/>
+    </Feature>
+  </Product>
+
+  <Fragment>
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="$(var.PlatformProgramFilesFolder)">
+        <Directory Id="INSTALLDIR" Name="pgxcli"/>
+      </Directory>
+    </Directory>
+  </Fragment>
+
+  <Fragment>
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLDIR">
+      <Component Id="MainExecutable" Guid="*" Win64="$(var.Win64)">
+        <File Id="pgxcliEXE"
+              Source="$(var.SourceDir)pgxcli.exe"
+              KeyPath="yes"/>
+        <Environment Id="UpdatePath"
+                     Name="PATH"
+                     Value="[INSTALLDIR]"
+                     Permanent="no"
+                     Part="last"
+                     Action="set"
+                     System="yes"/>
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+</Wix>

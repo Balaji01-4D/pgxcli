@@ -1,0 +1,62 @@
+#!/bin/bash
+set -e
+
+print_help() {
+  cat <<EOF
+Build pgxcli binaries locally with goreleaser:
+  script/release --local [--platform {linux|macos|windows}] [<tag-name>]
+EOF
+}
+
+if [ $# -eq 0 ]; then
+  print_help >&2
+  exit 1
+fi
+
+tag_name=""
+platform=""
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+  -h | --help )
+    print_help
+    exit 0
+    ;;
+  -p | --platform )
+    platform="$2"
+    shift 2
+    ;;
+  --local )
+    shift 1
+    ;;
+  -* )
+    printf "unrecognized flag: %s\n" "$1" >&2
+    exit 1
+    ;;
+  * )
+    tag_name="$1"
+    shift 1
+    ;;
+  esac
+done
+
+goreleaser_config=".goreleaser.yaml"
+
+case "$platform" in
+linux )
+  sed '/#build:macos/,/^$/d; /#build:windows/,/^$/d' .goreleaser.yaml >.goreleaser.generated.yaml
+  goreleaser_config=".goreleaser.generated.yaml"
+  ;;
+macos )
+  sed '/#build:linux/,/^$/d; /#build:windows/,/^$/d' .goreleaser.yaml >.goreleaser.generated.yaml
+  goreleaser_config=".goreleaser.generated.yaml"
+  ;;
+windows )
+  sed '/#build:linux/,/^$/d; /#build:macos/,/^$/d' .goreleaser.yaml >.goreleaser.generated.yaml
+  goreleaser_config=".goreleaser.generated.yaml"
+  ;;
+esac
+
+[ -z "$tag_name" ] || export GORELEASER_CURRENT_TAG="$tag_name"
+
+goreleaser release -f "$goreleaser_config" --clean --skip validate,publish,announce

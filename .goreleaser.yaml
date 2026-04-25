@@ -1,0 +1,132 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
+
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: pgxcli-linux #build:linux
+    main: "./cmd/pgxcli"
+    binary: "pgxcli"
+    env:
+      - CGO_ENABLED=1
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+      - "386"
+      - arm
+    goarm:
+      - "6"
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+    overrides:
+      - goos: linux
+        goarch: arm64
+        env:
+          - CGO_ENABLED=1
+          - CC=aarch64-linux-gnu-gcc
+          - CXX=aarch64-linux-gnu-g++
+      - goos: linux
+        goarch: "386"
+        env:
+          - CGO_ENABLED=1
+          - CC=i686-linux-gnu-gcc
+          - CXX=i686-linux-gnu-g++
+      - goos: linux
+        goarch: arm
+        goarm: "6"
+        env:
+          - CGO_ENABLED=1
+          - CC=arm-linux-gnueabi-gcc
+          - CXX=arm-linux-gnueabi-g++
+
+  - id: pgxcli-darwin #build:macos
+    main: "./cmd/pgxcli"
+    binary: "pgxcli"
+    env:
+      - CGO_ENABLED=1
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+
+  - id: pgxcli-windows #build:windows
+    main: "./cmd/pgxcli"
+    binary: "pgxcli"
+    env:
+      - CGO_ENABLED=1
+      - CC=gcc
+      - CXX=g++
+    goos:
+      - windows
+    goarch:
+      - amd64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+
+archives:
+  - id: linux
+    ids: [pgxcli-linux]
+    formats: ["tar.gz"]
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- if eq .Arch "arm" }}armv{{ .Arm }}
+      {{- else }}{{ .Arch }}{{ end }}
+    files:
+      - "LICENSE"
+      - "README.md"
+  - id: darwin
+    ids: [pgxcli-darwin]
+    formats: ["tar.gz"]
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- .Arch }}
+    files:
+      - "LICENSE"
+      - "README.md"
+  - id: windows
+    ids: [pgxcli-windows]
+    formats: ["zip"]
+    wrap_in_directory: false
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- .Arch }}
+    files:
+      - "LICENSE"
+      - "README.md"
+
+nfpms: #build:linux
+  - ids: [pgxcli-linux]
+    vendor: "Balaji J"
+    maintainer: "Balaji J <balaji.jothi.in@gmail.com>"
+    description: "An interactive PostgreSQL CLI written in Go"
+    homepage: "https://github.com/Balaji01-4D/pgxcli"
+    license: "MIT"
+    formats:
+      - deb
+      - rpm
+      - apk
+      - archlinux
+    bindir: /usr/bin
+    dependencies:
+      - less

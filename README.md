@@ -120,7 +120,7 @@ pgxcli postgres://user:password@localhost:5432/dbname
 pgxcli -i
 ```
 
-For full flag documentation, see the [CLI reference][cli-reference-url].
+For full flag documentation, see the [docs][https://balaji01-4d.github.io/pgxcli/reference/cli-reference/].
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -131,14 +131,7 @@ On first run, a config file is created at:
 
 * `~/.config/pgxcli/config.toml` (or the OS-equivalent user config directory)
 
-Common settings include:
-
-* `main.prompt`
-* `main.style`
-* `main.history_file`
-* `main.log_file`
-* `main.pager` (`auto`, `always`, `never`)
-* `main.on_error` (`STOP`, `RESUME`)
+For configuration documentation, see the [docs][https://balaji01-4d.github.io/pgxcli/reference/cli-reference/]
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -153,15 +146,6 @@ See the [open issues][issues-url] for proposed features and known issues.
 ## License
 
 Distributed under the MIT License. See [`LICENSE`][license-url] for more information.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-<!-- CONTACT -->
-## Contact
-
-Project Link: [https://github.com/Balaji01-4D/pgxcli](https://github.com/Balaji01-4D/pgxcli)
-
-Bug reports and feature requests: [GitHub Issues][issues-url]
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

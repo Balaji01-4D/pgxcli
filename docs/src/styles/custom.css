@@ -7,8 +7,19 @@
 }
 
 /* Ensure the hero image doesn't look weird with the header */
-[data-has-hero] .hero>img {
+[data-has-hero] .hero img {
 	filter: drop-shadow(0 0 3rem var(--sl-color-accent-low));
+	max-height: 400px;
+	width: auto;
+	object-fit: contain;
+}
+
+[data-has-hero] .hero picture {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	max-height: 400px;
+	overflow: visible;
 }
 
 /* ---------------------------------------------------------

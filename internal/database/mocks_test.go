@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -63,5 +64,12 @@ func (m *MockRows) Conn() *pgx.Conn               { return &pgx.Conn{} }
 func (m *MockRows) Close()                        {}
 func (m *MockRows) Err() error                    { return nil }
 func (m *MockRows) CommandTag() pgconn.CommandTag { return pgconn.CommandTag{} }
-func (m *MockRows) Values() ([]any, error)        { return nil, nil }
-func (m *MockRows) RawValues() [][]byte           { return nil }
+func (m *MockRows) Values() ([]any, error) {
+	if m.index == 0 || m.index > len(m.data) {
+		return nil, fmt.Errorf("no current row")
+	}
+	row := make([]any, len(m.data[m.index-1]))
+	copy(row, m.data[m.index-1])
+	return row, nil
+}
+func (m *MockRows) RawValues() [][]byte { return nil }

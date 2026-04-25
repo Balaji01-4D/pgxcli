@@ -107,7 +107,23 @@ func (e *executor) executeSpecial(ctx context.Context, cmd string) (pgxspecial.S
 		e.Logger.Error("Special command execution failed", "error", err, "command", cmd)
 		return nil, ok, err
 	}
-	return specialResult, ok, nil
+
+	if !ok || specialResult == nil || specialResult.ResultKind() != pgxspecial.ResultKindRows {
+		return specialResult, ok, nil
+	}
+
+	rowResult, isRowResult := specialResult.(pgxspecial.RowResult)
+	if !isRowResult {
+		return nil, ok, fmt.Errorf("invalid row special result type: %T", specialResult)
+	}
+
+	normalizedRows, err := result.NewSpecialRow(rowResult.Rows)
+	if err != nil {
+		e.Logger.Error("Failed to materialize special command rows", "error", err, "command", cmd)
+		return nil, ok, err
+	}
+
+	return normalizedRows, ok, nil
 }
 
 func (e *executor) close(ctx context.Context) error {

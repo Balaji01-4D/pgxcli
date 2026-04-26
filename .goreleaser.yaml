@@ -115,6 +115,22 @@ archives:
       - "LICENSE"
       - "README.md"
 
+brews: #build:macos
+  - name: pgxcli
+    ids: [pgxcli-darwin]
+    homepage: "https://github.com/Balaji01-4D/pgxcli"
+    description: "An interactive PostgreSQL CLI written in Go"
+    license: "MIT"
+    directory: Formula
+    skip_upload: true
+    test: |
+      system "#{bin}/pgxcli --version"
+    repository:
+      owner: Balaji01-4D
+      name: homebrew-pgxcli
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    commit_msg_template: "Brew formula update for pgxcli version {{ .Tag }}"
+
 nfpms: #build:linux
   - ids: [pgxcli-linux]
     vendor: "Balaji J"

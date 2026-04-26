@@ -1,26 +1,39 @@
 {
   "name": "pgxcli-docs",
-  "type": "module",
   "version": "0.0.1",
+  "private": true,
   "scripts": {
-    "dev": "astro dev",
-    "start": "astro dev",
-    "build": "astro build",
-    "preview": "astro preview",
-    "astro": "astro"
+    "docusaurus": "docusaurus",
+    "start": "docusaurus start",
+    "build": "docusaurus build",
+    "swizzle": "docusaurus swizzle",
+    "deploy": "docusaurus deploy",
+    "clear": "docusaurus clear",
+    "serve": "docusaurus serve",
+    "write-translations": "docusaurus write-translations",
+    "write-heading-ids": "docusaurus write-heading-ids"
   },
   "dependencies": {
-    "@astrojs/starlight": "^0.38.4",
-    "@iconify-json/logos": "^1.2.11",
-    "@iconify-json/mdi": "^1.2.3",
-    "astro": "^6.0.0",
-    "astro-icon": "^1.1.5",
-    "sharp": "^0.34.5"
+    "@docusaurus/core": "3.10.0",
+    "@docusaurus/preset-classic": "3.10.0",
+    "@easyops-cn/docusaurus-search-local": "^0.47.0",
+    "@mdx-js/react": "^3.0.0",
+    "clsx": "^2.0.0",
+    "prism-react-renderer": "^2.3.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
-  "description": "This directory contains the documentation site for pgxcli, built with [Astro](https://astro.build) and [Starlight](https://starlight.astro.build).",
-  "main": "index.js",
-  "devDependencies": {},
-  "keywords": [],
-  "author": "",
-  "license": "ISC"
+  "devDependencies": {
+    "@docusaurus/module-type-aliases": "3.10.0",
+    "@docusaurus/tsconfig": "3.10.0",
+    "@docusaurus/types": "3.10.0",
+    "typescript": "~5.8.2"
+  },
+  "browserslist": {
+    "production": [">0.5%", "not dead", "not op_mini all"],
+    "development": ["last 3 chrome version", "last 3 firefox version", "last 3 safari version"]
+  },
+  "engines": {
+    "node": ">=18.0"
+  }
 }

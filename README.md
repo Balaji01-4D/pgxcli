@@ -2,12 +2,14 @@
 <a id="readme-top"></a>
 
 <!-- PROJECT SHIELDS -->
-[![Contributors][contributors-shield]][contributors-url]
-[![Forks][forks-shield]][forks-url]
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
+<!-- [![Contributors][contributors-shield]][contributors-url] -->
+<!-- [![Forks][forks-shield]][forks-url] -->
 
+[![MIT License][license-shield]][license-url]
+![postgres](https://img.shields.io/badge/PostgreSQL-7B36ED.svg?style=for-the-badge&logoColor=white)
+
+![CLI](https://img.shields.io/badge/CLI-%23000000?style=for-the-badge&logo=iterm2&logoColor=white)
+[![Stargazers][stars-shield]][stars-url]
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
@@ -147,11 +149,11 @@ For configuration documentation, see the [docs][config-ref]
 [contributors-url]: https://github.com/Balaji01-4D/pgxcli/graphs/contributors
 [forks-shield]: https://img.shields.io/github/forks/Balaji01-4D/pgxcli.svg?style=for-the-badge
 [forks-url]: https://github.com/Balaji01-4D/pgxcli/network/members
-[stars-shield]: https://img.shields.io/github/stars/Balaji01-4D/pgxcli.svg?style=for-the-badge
+[stars-shield]:  	https://img.shields.io/badge/Pgxcli-7B36ED?style=for-the-badge&logo=database&logoColor=white
 [stars-url]: https://github.com/Balaji01-4D/pgxcli/stargazers
-[issues-shield]: https://img.shields.io/github/issues/Balaji01-4D/pgxcli.svg?style=for-the-badge
+[issues-shield]: https://img.shields.io/github/issues/Balaji01-4D/pgxcli.svg?style=for-the-badge?style=for-the-badge&color=8A2BE2&labelColor=8A2BE2&logoColor=white
 [issues-url]: https://github.com/Balaji01-4D/pgxcli/issues
-[license-shield]: https://img.shields.io/github/license/Balaji01-4D/pgxcli.svg?style=for-the-badge
+[license-shield]: https://img.shields.io/badge/Go-%23000000?style=for-the-badge&logo=go&logoColor=white
 [license-url]: https://github.com/Balaji01-4D/pgxcli/blob/main/LICENSE
 
 [go-url]: https://go.dev/

@@ -4,12 +4,11 @@
 <!-- PROJECT SHIELDS -->
 <!-- [![Contributors][contributors-shield]][contributors-url] -->
 <!-- [![Forks][forks-shield]][forks-url] -->
+![CLI](https://img.shields.io/badge/CLI-%23000000?style=for-the-badge&logo=iterm2&logoColor=white)
+[![Stargazers][stars-shield]][stars-url]
 
 [![MIT License][license-shield]][license-url]
 ![postgres](https://img.shields.io/badge/PostgreSQL-7B36ED.svg?style=for-the-badge&logoColor=white)
-
-![CLI](https://img.shields.io/badge/CLI-%23000000?style=for-the-badge&logo=iterm2&logoColor=white)
-[![Stargazers][stars-shield]][stars-url]
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">

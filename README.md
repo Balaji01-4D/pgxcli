@@ -52,53 +52,43 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-`pgxcli` is an interactive PostgreSQL command-line client built in Go. It focuses on a fast, friendly REPL experience with syntax highlighting, keyword autocompletion, history, and support for PostgreSQL backslash commands.
+`pgxcli` is an interactive PostgreSQL command-line client built in Go, designed for a fast, and smooth REPL experience. It includes syntax highlighting, keyword autocompletion, command history, and support for PostgreSQL backslash commands.
 
-Key highlights:
+Highlights:
 * Interactive REPL with customizable prompt and style.
-* SQL syntax highlighting while typing.
+* SQL syntax highlighting.
 * SQL keyword autocompletion.
 * Persistent command history.
-* PostgreSQL special backslash commands (for example: `\d`, `\l`, `\dt`, `\q`).
-* Configurable error behavior for multi-statement execution (`STOP` / `RESUME`).
+* PostgreSQL special backslash commands (`\d`, `\l`, `\dt`, `\q`).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- PGXCLI VS PGCLI -->
 ## Comparison with pgcli
 
-[pgcli][pgcli-url] is an excellent, mature PostgreSQL CLI with over a decade of development. It has set the standard for interactive PostgreSQL clients.
+[Pgcli][pgcli-url] is a mature PostgreSQL CLI developed over many years, which has set the standard for interactive PostgreSQL clients.
 
-**pgxcli brings simplicity and speed to PostgreSQL.** If you want a single Go binary with fast startup and TOML config, it's worth exploring. For mature, production-hardened features, pgcli remains the standard.
+**pgxcli** takes the simpler approach, focusing on speed and minmal setup. It is a singe Go binary with fast startup and TOML configuration. If you need a lightweight, It may be good fit. for a more feature-rich, established experience, pgcli remains the benchmark.
 
-**Quick Wins with pgxcli:**
-* **Zero dependencies:** A single Go binary, no Python runtime or virtual environments needed.
-* **Instant startup:** Near-instantaneous launch times, getting you to the query prompt faster.
-* **Simple configuration:** Modern, straightforward TOML setup.
+### Where pgxcli stands out:
+#### Now 
+* Single binary, no external runtime dependencies
+* Fast startup and better performance
 
-What pgxcli has today:
-* Core interactive REPL experience
-* PostgreSQL meta-commands
-* Syntax highlighting
-* Basic autocompletion (keywords)
-* History persistence
-* Pager support
-* TOML configuration
+#### Planned
+* Modern CLI Interface
+* Streaming query results for large tables
+* Browser based Table view via localhost
+* Performance improvements for large tables
+* Direct Table export to SQL INSERT statements, CSV, MD tables, Excel, and HTML.
 
 <details>
   <summary><strong>Which one should I use?</strong></summary>
 
-Choose **pgxcli** if you:
-* Want a fast, single Go binary without a Python runtime
-* Prefer standard TOML configuration
-* Value minimal, focused tooling and fast startup times
-* Want to contribute to an early-stage Go project
+Right now, I would definitely choose pgcli. I think no explanation is needed.
 
-Choose **pgcli** if you:
-* Need mature, battle-tested tooling for production environments
-* Require advanced features like SSH tunnels and keyring integration
-* Need rich, schema-aware completion right now
-* Prefer Python-based tools and ecosystem
+That could change as pgxcli matures. I would really appreciate if you give pgxcli a try and share your feedback. If you want to contribute, that would be even better.
+
 </details>
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -119,6 +109,8 @@ pgxcli postgres://user:password@localhost:5432/dbname
 # interactive connection form
 pgxcli -i
 ```
+
+<img src="https://res.cloudinary.com/dsdupsv2g/image/upload/q_auto/f_auto/v1777298704/5_h2fxui.png" alt="pgxcli flags screenshot" width="100%"/>
 
 For full flag documentation, see the [docs][cli-ref].
 

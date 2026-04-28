@@ -92,6 +92,30 @@ That could change as pgxcli matures. I would really appreciate if you give pgxcl
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+<!-- GETTING STARTED -->
+## Getting Started
+
+### Installation
+
+#### Linux
+```bash
+# Debian / Ubuntu
+sudo dpkg -i pgxcli_*_linux_amd64.deb
+```
+
+#### macOS
+```bash
+brew tap Balaji01-4D/pgxcli
+brew install pgxcli
+```
+
+#### Windows
+Download the `.msi` from the [releases page][releases-url] and run it.
+
+For more installation methods, see the [Installation Guide][install-ref].
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 <!-- USAGE EXAMPLES -->
 ## Usage
 
@@ -156,3 +180,5 @@ For configuration documentation, see the [docs][config-ref]
 [pgcli-url]: https://github.com/dbcli/pgcli
 [cli-ref]: https://pgxcli.vercel.app/reference/cli-reference/
 [config-ref]: https://pgxcli.vercel.app/guides/configuration/
+[install-ref]: https://pgxcli.vercel.app/guides/getting-started/
+[releases-url]: https://github.com/Balaji01-4D/pgxcli/releases

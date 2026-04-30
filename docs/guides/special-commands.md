@@ -14,7 +14,7 @@ These control your session:
 
 | Command | Description |
 |---------|-------------|
-| `\q` | Quit pgxcli |
+| `\q`, `\quit`, `\exit` | Quit pgxcli (case-insensitive) |
 | `\c <database>` | Switch to a different database on the same server |
 | `\connect <database>` | Same as `\c` |
 | `\conninfo` | Show current connection details (database, user, host, port) |
@@ -70,7 +70,7 @@ These are pgxcli-specific:
 
 | Command | Description |
 |---------|-------------|
-| `clear` | Clear the terminal screen |
+| `\clear` | Clear the terminal screen |
 
 ---
 

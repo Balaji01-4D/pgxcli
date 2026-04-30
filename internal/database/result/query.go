@@ -14,16 +14,9 @@ type QueryResult struct {
 }
 
 func NewQuery(rows pgx.Rows, duration time.Duration) *QueryResult {
-	fds := rows.FieldDescriptions()
-	columns := make([]string, len(fds))
-	for i, fd := range fds {
-		columns[i] = fd.Name
-	}
-
 	return &QueryResult{
 		rowStreamer: rowStreamer{
 			rows:     rows,
-			columns:  columns,
 			duration: duration,
 		},
 	}
@@ -34,7 +27,14 @@ func (r *QueryResult) Type() Type {
 }
 
 func (r *QueryResult) Columns() []string {
-	return r.rowStreamer.Columns()
+	if r.columns == nil {
+		fds := r.rows.FieldDescriptions()
+		r.columns = make([]string, len(fds))
+		for i, fd := range fds {
+			r.columns[i] = fd.Name
+		}
+	}
+	return r.columns
 }
 
 func (r *QueryResult) Rows() ([][]any, error) {
@@ -61,10 +61,6 @@ type rowStreamer struct {
 	columns  []string
 	closed   bool
 	duration time.Duration
-}
-
-func (r *rowStreamer) Columns() []string {
-	return r.columns
 }
 
 // Next returns the next row as []any or io.EOF when done.

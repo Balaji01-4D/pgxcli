@@ -110,17 +110,12 @@ func (p *pgxCLI) Start(ctx context.Context, client *database.Client) {
 		}
 
 		p.logger.Debug("executing query")
-		stmts, err := parser.SplitSqlStatement(trimmedInput)
-		if err != nil {
-			p.logger.Error("failed to split sql statements", "error", err)
-			p.Printer.PrintError(err)
-			continue
-		}
+		stmts := parser.SplitSQLStatements(trimmedInput)
 
 	StatementsLoop:
 		for _, stmt := range stmts {
 			p.logger.Debug("parsed statement", "statement", stmt)
-			if stmt == "" {
+			if stmt == "" || stmt == ";" {
 				continue
 			}
 
@@ -220,30 +215,25 @@ func (p *pgxCLI) handleSpecialCommand(ctx context.Context, metaResult pgxspecial
 }
 
 func (p *pgxCLI) handleQueryResult(r result.Result) error {
-	switch res := r.(type) {
-	case *result.QueryResult:
-		var s strings.Builder
-		err := renderer.Table(res, &s, p.config)
-		if err != nil {
-			return err
-		}
-		output := s.String()
-		// If columns exist, we printed a table. Append the command tag (e.g., "SELECT 5", "INSERT 0 1").
-		// If no columns, we just print the command tag.
-		if len(res.Columns()) == 0 {
-			output = res.CommandTag()
-		} else {
-			output += res.CommandTag()
-		}
-		p.Printer.PrintViaPager(output)
-		p.Printer.PrintTime(res.Duration())
-		return nil
-	case *result.ExecResult:
-		p.Printer.PrintViaPager(res.Status)
-		fmt.Println()
-		p.Printer.PrintTime(res.Duration)
-		return nil
-	default:
+	res, ok := r.(*result.QueryResult)
+	if !ok {
 		return fmt.Errorf("unsupported query result type: %T", r)
 	}
+
+	var s strings.Builder
+	err := renderer.Table(res, &s, p.config)
+	if err != nil {
+		return err
+	}
+	output := s.String()
+	// If columns exist, we printed a table. Append the command tag (e.g., "SELECT 5", "INSERT 0 1").
+	// If no columns, we just print the command tag.
+	if len(res.Columns()) == 0 {
+		output = res.CommandTag()
+	} else {
+		output += res.CommandTag()
+	}
+	p.Printer.PrintViaPager(output)
+	p.Printer.PrintTime(res.Duration())
+	return nil
 }

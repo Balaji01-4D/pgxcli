@@ -36,6 +36,7 @@ type MockRows struct {
 	mock.Mock
 	data   [][]any
 	fields []pgconn.FieldDescription
+	tag    pgconn.CommandTag
 	index  int
 }
 
@@ -63,7 +64,7 @@ func (m *MockRows) Scan(dest ...any) error {
 func (m *MockRows) Conn() *pgx.Conn               { return &pgx.Conn{} }
 func (m *MockRows) Close()                        {}
 func (m *MockRows) Err() error                    { return nil }
-func (m *MockRows) CommandTag() pgconn.CommandTag { return pgconn.CommandTag{} }
+func (m *MockRows) CommandTag() pgconn.CommandTag { return m.tag }
 func (m *MockRows) Values() ([]any, error) {
 	if m.index == 0 || m.index > len(m.data) {
 		return nil, fmt.Errorf("no current row")

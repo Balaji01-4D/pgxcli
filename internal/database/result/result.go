@@ -4,8 +4,8 @@ type Type int
 
 const (
 	ResultTypeQuery Type = iota
-	ResultTypeExec
 	ResultTypeSpecial
+	ResultTypeError
 )
 
 // Result marks values returned by SQL execution paths.

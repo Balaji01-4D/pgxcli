@@ -97,46 +97,47 @@ func TestExecutorQuery(t *testing.T) {
 	}
 }
 
-func TestExecutorExec(t *testing.T) {
+func TestExecutorExecute(t *testing.T) {
 	ctx := context.Background()
 
 	relationNotFoundErr := &pgconn.PgError{Code: "42P01"}
 	testCases := []struct {
-		name         string
-		query        string
-		tag          pgconn.CommandTag
-		execErr      error
-		wantStatus   string
-		wantAffected int64
-		wantErr      bool
-		wantErrIs    error
+		name       string
+		query      string
+		rows       *MockRows
+		queryErr   error
+		wantStatus string
+		wantErr    bool
+		wantErrIs  error
 	}{
 		{
-			name:         "delete success",
-			query:        "delete from users where id = 1",
-			tag:          pgconn.NewCommandTag("DELETE 1"),
-			wantStatus:   "DELETE 1",
-			wantAffected: 1,
+			name:  "delete success",
+			query: "delete from users where id = 1",
+			rows: &MockRows{
+				tag: pgconn.NewCommandTag("DELETE 1"),
+			},
+			wantStatus: "DELETE 1",
 		},
 		{
-			name:         "insert success",
-			query:        "insert into users (name) values ('name1')",
-			tag:          pgconn.NewCommandTag("INSERT 0 1"),
-			wantStatus:   "INSERT 0 1",
-			wantAffected: 1,
+			name:  "insert success",
+			query: "insert into users (name) values ('name1')",
+			rows: &MockRows{
+				tag: pgconn.NewCommandTag("INSERT 0 1"),
+			},
+			wantStatus: "INSERT 0 1",
 		},
 		{
-			name:    "returns error",
-			query:   "delete from users where id = 1",
-			tag:     pgconn.NewCommandTag(""),
-			execErr: assert.AnError,
-			wantErr: true,
+			name:     "returns error",
+			query:    "delete from users where id = 1",
+			rows:     &MockRows{},
+			queryErr: assert.AnError,
+			wantErr:  true,
 		},
 		{
 			name:      "returns relation not found",
 			query:     "delete from users where id = 1",
-			tag:       pgconn.NewCommandTag(""),
-			execErr:   relationNotFoundErr,
+			rows:      &MockRows{},
+			queryErr:  relationNotFoundErr,
 			wantErr:   true,
 			wantErrIs: relationNotFoundErr,
 		},
@@ -146,10 +147,10 @@ func TestExecutorExec(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			conn := new(MockConn)
-			conn.On("Exec", ctx, tc.query).Return(tc.tag, tc.execErr)
+			conn.On("Query", ctx, tc.query).Return(tc.rows, tc.queryErr)
 
 			exec := &executor{Conn: conn, Logger: slog.Default()}
-			result, err := exec.exec(ctx, tc.query)
+			result, err := exec.execute(ctx, tc.query)
 
 			if tc.wantErr {
 				assert.Nil(t, result)
@@ -162,10 +163,9 @@ func TestExecutorExec(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			execResult, ok := result.(*dbresult.ExecResult)
+			queryResult, ok := result.(*dbresult.QueryResult)
 			require.True(t, ok)
-			assert.Equal(t, tc.wantAffected, execResult.RowsAffected)
-			assert.Equal(t, tc.wantStatus, execResult.Status)
+			assert.Equal(t, tc.wantStatus, queryResult.CommandTag())
 			conn.AssertExpectations(t)
 		})
 	}

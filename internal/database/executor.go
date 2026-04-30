@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/balaji01-4d/pgxcli/internal/database/result"
-	"github.com/balaji01-4d/pgxcli/internal/parser"
 	"github.com/balaji01-4d/pgxspecial"
 
 	"github.com/jackc/pgx/v5"
@@ -79,26 +78,9 @@ func (e *executor) query(ctx context.Context, sql string, args ...any) (result.R
 	return result.NewQuery(rows, dur), nil
 }
 
-// For executing commands like INSERT, UPDATE, DELETE etc.
-func (e *executor) exec(ctx context.Context, sql string, args ...any) (result.Result, error) {
-	e.Logger.Debug("Executing command", "sql", sql)
-	start := time.Now()
-	tag, err := e.Conn.Exec(ctx, sql, args...)
-	if err != nil {
-		e.Logger.Error("Command failed", "error", err, "sql", sql)
-		return nil, err
-	}
-	dur := time.Since(start)
-	e.Logger.Info("Command completed", "duration_ms", dur.Milliseconds(), "rows_affected", tag.RowsAffected(), "status", tag.String())
-	return result.NewExec(tag, dur), nil
-}
-
 // execute determines whether to run query or exec based on SQL type.
 func (e *executor) execute(ctx context.Context, sql string, args ...any) (result.Result, error) {
-	if parser.IsQuery(sql) {
-		return e.query(ctx, sql, args...)
-	}
-	return e.exec(ctx, sql, args...)
+	return e.query(ctx, sql, args...)
 }
 
 func (e *executor) executeSpecial(ctx context.Context, cmd string) (pgxspecial.SpecialCommandResult, bool, error) {

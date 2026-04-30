@@ -36,8 +36,8 @@ internal/logger/          → slog-based file logger
 
 1. `app.pgxCLI.Start()` reads input via `go-prompter`-backed `Reader`
 2. Input is matched: builtin (e.g. clear screen) → special pgSQL command (`\d`, `\q`, `\c`) → SQL
-3. `parser.SplitSqlStatement` splits multi-statement input; `parser.IsQuery` routes to `Exec` vs `Query` on pgx
-4. `database.executor` runs the statement and returns a typed `result.Result` (`QueryResult` or `ExecResult`)
+3. `parser.SplitSqlStatement` splits multi-statement input; everything is routed to `Query` on pgx
+4. `database.executor` runs the statement and returns a `result.QueryResult`
 5. `app/renderer` formats the result as a table (via `olekukonko/tablewriter`); `Printer` outputs via pager
 
 ### Special commands

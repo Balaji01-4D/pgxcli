@@ -159,7 +159,6 @@ For configuration documentation, see the [docs][config-ref]
 * [Viper][viper-url]
 * [go-pretty][go-pretty-url]
 * [go-prompter][go-prompter-url]
-* [pg_query_go][pg-query-url]
 * Inspired by [pgcli][pgcli-url]
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -176,7 +175,6 @@ For configuration documentation, see the [docs][config-ref]
 [viper-url]: https://github.com/spf13/viper
 [go-pretty-url]: https://github.com/jedib0t/go-pretty
 [go-prompter-url]: https://github.com/jedib0t/go-prompter
-[pg-query-url]: https://github.com/pganalyze/pg_query_go
 [pgcli-url]: https://github.com/dbcli/pgcli
 [cli-ref]: https://pgxcli.vercel.app/reference/cli-reference/
 [config-ref]: https://pgxcli.vercel.app/guides/configuration/

@@ -43,7 +43,6 @@ func NewSpecialRow(rows pgx.Rows) (SpecialRow, error) {
 	return SpecialRow{columns: columns, data: data}, nil
 }
 
-
 // ResultKind marks this result as a row-based special command output.
 func (r SpecialRow) ResultKind() pgxspecial.SpecialResultKind {
 	return pgxspecial.ResultKindRows

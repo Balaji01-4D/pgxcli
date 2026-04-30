@@ -104,6 +104,14 @@ jobs:
           version: v2.13.1
           install-only: true
 
+    - name: Extract release notes
+        id: extract-release-notes
+        uses: ffurrer2/extract-release-notes@v3
+
+      - name: Write release notes to file
+        run: |
+          echo "${{ steps.extract-release-notes.outputs.release_notes }}" > /tmp/release_notes.md
+
       - name: Create temporary tag
         env:
           TAG_NAME: ${{ inputs.tag_name }}
@@ -112,7 +120,7 @@ jobs:
       - name: Run GoReleaser (creates draft)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: goreleaser release --clean
+        run: goreleaser release --clean --fail-fast --release-notes /tmp/release_notes.md
 
   # ── Job 3: Upload MSI to draft + publish ─────────────────────────────
   publish:

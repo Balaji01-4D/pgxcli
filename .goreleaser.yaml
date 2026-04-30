@@ -7,6 +7,10 @@ release:
   draft: true
   prerelease: auto
   name_template: "pgxcli {{.Version}}"
+  header: |
+    # pgxcli {{.Version}}
+  footer: |
+    **Full Changelog**: https://github.com/Balaji01-4D/pgxcli/blob/main/CHANGELOG.md
 
 before:
   hooks:
@@ -95,9 +99,4 @@ checksum:
   name_template: "checksums.txt"
 
 changelog:
-  sort: asc
-  filters:
-    exclude:
-      - "^docs:"
-      - "^test:"
-      - "^chore:"
+  disable: true

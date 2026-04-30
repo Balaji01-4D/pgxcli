@@ -5,7 +5,7 @@ BUILD_PATH = "bin"
 
 build:
 	@mkdir -p $(BUILD_PATH)
-	@go build -o $(BUILD_PATH)/app $(MAIN_PATH)
+	@CGO_ENABLED=0 go build -o $(BUILD_PATH)/app $(MAIN_PATH)
 
 lint:
 	@golangci-lint run

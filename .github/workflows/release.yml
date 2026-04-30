@@ -59,13 +59,6 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         run: git tag "$TAG_NAME"
 
-      - name: Install cross-compilers
-        run: |
-          sudo apt-get install -y \
-            gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
-            gcc-i686-linux-gnu g++-i686-linux-gnu \
-            gcc-arm-linux-gnueabi g++-arm-linux-gnueabi
-
       - name: Build release binaries
         run: bash script/release --local "$TAG_NAME" --platform linux
         env:
@@ -138,13 +131,6 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-
-      - name: Set up MSYS2
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          install: mingw-w64-x86_64-gcc
-          update: true
 
       - name: Install GoReleaser
         uses: goreleaser/goreleaser-action@v6

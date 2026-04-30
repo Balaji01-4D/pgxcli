@@ -12,7 +12,7 @@ builds:
     main: "./cmd/pgxcli"
     binary: "pgxcli"
     env:
-      - CGO_ENABLED=1
+      - CGO_ENABLED=0
     goos:
       - linux
     goarch:
@@ -26,32 +26,12 @@ builds:
       - -s -w
       - -X main.version={{.Version}}
       - -X main.commit={{.Commit}}
-    overrides:
-      - goos: linux
-        goarch: arm64
-        env:
-          - CGO_ENABLED=1
-          - CC=aarch64-linux-gnu-gcc
-          - CXX=aarch64-linux-gnu-g++
-      - goos: linux
-        goarch: "386"
-        env:
-          - CGO_ENABLED=1
-          - CC=i686-linux-gnu-gcc
-          - CXX=i686-linux-gnu-g++
-      - goos: linux
-        goarch: arm
-        goarm: "6"
-        env:
-          - CGO_ENABLED=1
-          - CC=arm-linux-gnueabi-gcc
-          - CXX=arm-linux-gnueabi-g++
 
   - id: pgxcli-darwin #build:macos
     main: "./cmd/pgxcli"
     binary: "pgxcli"
     env:
-      - CGO_ENABLED=1
+      - CGO_ENABLED=0
     goos:
       - darwin
     goarch:
@@ -66,9 +46,7 @@ builds:
     main: "./cmd/pgxcli"
     binary: "pgxcli"
     env:
-      - CGO_ENABLED=1
-      - CC=gcc
-      - CXX=g++
+      - CGO_ENABLED=0
     goos:
       - windows
     goarch:

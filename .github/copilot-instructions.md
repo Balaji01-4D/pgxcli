@@ -40,7 +40,7 @@ pgxcli is an interactive PostgreSQL CLI written in Go. The application follows a
 - **`internal/config`** – Configuration management (loads embedded defaults + user config from `~/.config/pgxcli/config.toml`).
 - **`internal/logger`** – Structured logging via `log/slog`. Initializes file-based logger with debug flag support.
 - **`internal/completer`** – SQL autocompletion engine; maintains database schema metadata.
-- **`internal/parser`** – SQL parsing (via `pganalyze/pg_query_go`); classifies statements as queries vs. execution commands.
+- **`internal/parser`** – SQL parsing; classifies statements as queries vs. execution commands via custom splitter.
 - **`internal/ui`** – Forms and prompts (uses Charm libraries: bubbletea, huh, lipgloss).
 - **`internal/cliio`** – Output printing abstraction (stdout/stderr wrapper).
 

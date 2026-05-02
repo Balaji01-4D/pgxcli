@@ -7,6 +7,29 @@ const config: Config = {
   tagline: 'An interactive PostgreSQL client for your terminal.',
   favicon: 'img/favicon.ico',
 
+  headTags: [
+    {
+      tagName: 'script',
+      attributes: {
+        type: 'application/ld+json',
+      },
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'SoftwareApplication',
+        'name': 'pgxcli',
+        'operatingSystem': 'Linux, macOS, Windows',
+        'applicationCategory': 'DeveloperApplication',
+        'offers': {
+          '@type': 'Offer',
+          'price': '0.00',
+          'priceCurrency': 'USD'
+        },
+        'description': 'An interactive PostgreSQL command-line client written in Go with syntax highlighting and autocompletion.',
+        'url': 'https://pgxcli.vercel.app'
+      }),
+    },
+  ],
+
   future: {
     v4: true,
   },

@@ -1,6 +1,7 @@
 ---
 title: Connecting
 description: Every way to connect pgxcli to a PostgreSQL database.
+keywords: [connect to postgres, psql connection string, pgxcli login, postgres connection form, database url]
 sidebar_position: 3
 ---
 

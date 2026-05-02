@@ -1,6 +1,7 @@
 ---
 title: Special Commands
 description: Backslash commands and built-in commands available inside the pgxcli REPL.
+keywords: [psql backslash commands, list tables postgres, describe table postgres, psql commands, session commands]
 sidebar_position: 5
 ---
 

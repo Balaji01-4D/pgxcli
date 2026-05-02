@@ -1,6 +1,7 @@
 ---
 title: CLI Flags
 description: Complete reference for all pgxcli command-line flags.
+keywords: [pgxcli flags, postgres command line arguments, psql options, pgxcli help]
 sidebar_position: 1
 ---
 

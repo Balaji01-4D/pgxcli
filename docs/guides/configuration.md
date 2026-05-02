@@ -1,6 +1,7 @@
 ---
 title: Configuration
 description: Customize pgxcli with a simple TOML config file.
+keywords: [pgxcli config, toml configuration, postgres theme, psql pager, syntax highlighting theme]
 sidebar_position: 4
 ---
 

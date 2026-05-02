@@ -1,6 +1,7 @@
 ---
 title: Features
 description: An overview of what pgxcli brings to your PostgreSQL workflow.
+keywords: [postgresql syntax highlighting, sql autocompletion, psql features, postgres auto complete, chroma]
 sidebar_position: 6
 ---
 

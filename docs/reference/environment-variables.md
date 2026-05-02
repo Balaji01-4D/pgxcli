@@ -1,6 +1,7 @@
 ---
 title: Environment Variables
 description: Environment variables that pgxcli reads for connection defaults and configuration.
+keywords: [postgres environment variables, PGPASSWORD, PGUSER, libpq env, PGHOST, PGDATABASE]
 sidebar_position: 2
 ---
 

@@ -62,6 +62,11 @@ const config: Config = {
   ],
 
   themeConfig: {
+    image: 'img/app-screenshot.png',
+    metadata: [
+      {name: 'keywords', content: 'postgres, postgresql, psql, cli, terminal, database, go, golang, database client, sql'},
+      {name: 'twitter:card', content: 'summary_large_image'},
+    ],
     colorMode: {
       defaultMode: 'dark',
       disableSwitch: false,

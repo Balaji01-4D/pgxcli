@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -126,6 +127,39 @@ func TestHistorySaveHistory_FailsOnInvalidPath(t *testing.T) {
 	err := h.saveHistory(entries)
 
 	assert.Error(t, err)
+}
+
+func TestHistorySaveHistory_PrunesWhenOverLimit(t *testing.T) {
+	tempFile, err := os.CreateTemp("", "history_test_prune")
+	assert.NoError(t, err)
+	defer func() {
+		closeErr := tempFile.Close()
+		assert.NoError(t, closeErr)
+		err := os.Remove(tempFile.Name())
+		assert.NoError(t, err)
+	}()
+
+	h := history{path: tempFile.Name(), loadCount: maxHistoryLines, logger: testLogger()}
+	entries := make([]prompt.HistoryCommand, maxHistoryLines+10)
+	for i := range entries {
+		entries[i] = prompt.HistoryCommand{Command: fmt.Sprintf("select %d", i)}
+	}
+
+	err = h.saveHistory(entries)
+	assert.NoError(t, err)
+
+	data, err := os.ReadFile(tempFile.Name())
+	assert.NoError(t, err)
+	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
+	assert.Len(t, lines, maxHistoryLines)
+
+	var firstCommand prompt.HistoryCommand
+	assert.NoError(t, json.Unmarshal([]byte(lines[0]), &firstCommand))
+	assert.Equal(t, entries[len(entries)-maxHistoryLines], firstCommand)
+
+	var lastCommand prompt.HistoryCommand
+	assert.NoError(t, json.Unmarshal([]byte(lines[maxHistoryLines-1]), &lastCommand))
+	assert.Equal(t, entries[len(entries)-1], lastCommand)
 }
 
 func TestLoadHistory(t *testing.T) {

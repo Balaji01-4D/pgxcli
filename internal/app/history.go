@@ -86,14 +86,23 @@ func (h *history) saveHistory(entries []prompt.HistoryCommand) error {
 		return nil
 	}
 
-	newCommands := entries[h.loadCount:]
-
 	historyDir := filepath.Dir(h.path)
 	if err := os.MkdirAll(historyDir, 0o700); err != nil {
 		return err
 	}
 
-	f, err := os.OpenFile(h.path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+	var commands []prompt.HistoryCommand
+	flags := os.O_CREATE | os.O_WRONLY
+
+	if len(entries) > maxHistoryLines {
+		commands = entries[max(0, len(entries)-maxHistoryLines):]
+		flags |= os.O_TRUNC
+	} else {
+		commands = entries[h.loadCount:]
+		flags |= os.O_APPEND
+	}
+
+	f, err := os.OpenFile(h.path, flags, 0o600)
 	if err != nil {
 		return err
 	}
@@ -104,7 +113,7 @@ func (h *history) saveHistory(entries []prompt.HistoryCommand) error {
 	}()
 
 	w := bufio.NewWriter(f)
-	for _, entry := range newCommands {
+	for _, entry := range commands {
 		line, err := json.Marshal(entry)
 		if err != nil {
 			h.logger.Warn("skipping entry, failed to marshal", "command", entry.Command, "error", err)
@@ -122,7 +131,7 @@ func (h *history) saveHistory(entries []prompt.HistoryCommand) error {
 	if err := w.Flush(); err != nil {
 		return err
 	}
-	h.logger.Debug("history saved", "new_entries", len(newCommands))
+	h.logger.Debug("history saved", "entries_written", len(commands))
 	return nil
 }
 

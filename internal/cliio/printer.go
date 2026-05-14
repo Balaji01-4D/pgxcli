@@ -42,6 +42,7 @@ type Printer interface {
 	PrintError(err error)
 	PrintTime(time time.Duration)
 	PrintViaPager(str string)
+	ShouldUsePager(str string) bool
 }
 
 // pgxPrinter is the default Printer implementation used by the CLI.

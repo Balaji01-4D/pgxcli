@@ -32,6 +32,9 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
 
+      - name: Download dependencies
+        run: go mod download
+
       - name: Run tests with coverage
         run: go test -race -covermode atomic -coverprofile=profile.cov ./...
 

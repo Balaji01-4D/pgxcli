@@ -400,23 +400,28 @@ func promptPassword() (string, error) {
 	fd := int(os.Stdin.Fd())
 	oldState, err := term.GetState(fd)
 	if err != nil {
-		// Fallback: stdin is not a TTY (e.g., piped input)
+		// stdin is not a TTY — fall back to normal line input
 		var pwd string
-		_, err = fmt.Scanln(&pwd)
+		_, err := fmt.Scanln(&pwd)
 		if err != nil {
 			return "", err
 		}
 		return pwd, nil
 	}
-	if err := term.Restore(fd, oldState); err != nil {
-		// Best effort restore — terminal may still be usable
-		fmt.Println()
+
+	// Put terminal in raw mode (echo off) for secure password entry.
+	if _, err := term.MakeRaw(fd); err != nil {
+		return "", fmt.Errorf("failed to set raw terminal mode: %w", err)
 	}
+
 	pwd, err := term.ReadPassword(fd)
+	// Restore terminal to its original state no matter what.
+	_ = term.Restore(fd, oldState)
+	fmt.Println()
+
 	if err != nil {
 		return "", err
 	}
-	fmt.Println()
 	return string(pwd), nil
 }
 

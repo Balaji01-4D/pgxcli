@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/Balaji01-4D/bubbline/computil"
@@ -226,7 +227,11 @@ func detectTerminalColorProfile() string {
 func applyEditlineConfig(el *editline.Model, historyFile string, pgKeywords []string) error {
 	el.SetHelpDisabled(true)
 	el.SetHighlighter(postgresHighlighter("monokai"))
-
+	el.SetExternalEditorEnabled(true, "sql")
+	el.KeyMap.ExternalEdit = key.NewBinding(
+		key.WithKeys("ctrl+e"),
+		key.WithHelp("ctrl+e", "edit query in external editor"),
+	)
 	el.AutoComplete = postgresAutocomplete(pgKeywords)
 
 	entries, err := history.LoadHistory(historyFile)

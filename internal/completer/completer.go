@@ -24,12 +24,11 @@ func New(logger *slog.Logger) *Completer {
 	}
 }
 
-// log is a helper that safely logs, handling nil logger case.
-func (c *Completer) log() *slog.Logger {
-	if c.logger == nil {
-		return slog.Default()
-	}
-	return c.logger
+// GetKeyWords returns the PostgreSQL keywords for autocompletion.
+func (c *Completer) GetKeyWords() []string {
+	c.metadata.mu.RLock()
+	defer c.metadata.mu.RUnlock()
+	return c.metadata.KeyWords
 }
 
 func (c *Completer) ExtendDatabases(databases []string) {

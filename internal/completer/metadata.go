@@ -57,7 +57,7 @@ func NewMetaData() *MetaData {
 		Functions:        make(map[string]map[string][]*FunctionMetadata),
 		DataTypes:        make(map[string]map[string]bool),
 		KeyWordsTree:     make(map[string]any),
-		KeyWords:         make([]string, 0),
+		KeyWords:         LoadPgKeywords(),
 		BuiltinFunctions: make([]string, 0),
 		AllCompletions:   make(map[string]bool),
 		Casing:           make(map[string]string),

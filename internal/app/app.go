@@ -29,6 +29,8 @@ type Application interface {
 	// Start starts the main repl loop, reading input, executing commands and printing results until the user exits.
 	Start(ctx context.Context, client *database.Client) error
 
+	SetAutoCompleteKeywords(keywords []string)
+
 	// Close performs saving history before exiting.
 	Close() error
 }
@@ -48,13 +50,16 @@ type pgxCLI struct {
 	pgkws []string
 }
 
-func New(cfg *config.Config, printer cliio.Printer, logger *slog.Logger, pgKws []string) (Application, error) {
+func New(cfg *config.Config, printer cliio.Printer, logger *slog.Logger) (Application, error) {
 	return &pgxCLI{
 		config:  cfg,
 		logger:  logger,
 		Printer: printer,
-		pgkws:   pgKws,
 	}, nil
+}
+
+func (p *pgxCLI) SetAutoCompleteKeywords(keywords []string) {
+	p.pgkws = keywords
 }
 
 func (p *pgxCLI) execute(ctx context.Context, client *database.Client, query string) tea.Cmd {

@@ -83,8 +83,7 @@ func NewRootCmd(ctx context.Context, cliCtx *CliContext) *cobra.Command {
 			if !bool(interactiveConnFlag) {
 				ui.PrintBanner(version)
 			}
-			cliCtx.App.Start(ctx, cliCtx.Client)
-			return nil
+			return cliCtx.App.Start(ctx, cliCtx.Client)
 		},
 
 		PersistentPostRunE: func(_ *cobra.Command, _ []string) error {
@@ -338,13 +337,14 @@ func ensureConnected(cliCtx *CliContext) error {
 // initApplication Initializes the app,
 // which includes setting up the logger, config and autocompleter with PostgreSQL keywords.
 func initApplication(cliCtx *CliContext, pgKeywords []string) error {
-	initializedApp, err := app.New(cliCtx.config, cliCtx.Printer, cliCtx.Logger.Logger)
+	pgxCLI, err := app.New(cliCtx.config, cliCtx.Printer, cliCtx.Logger.Logger)
 	if err != nil {
 		cliCtx.Logger.Error("Failed to initialize app", "error", err)
 		return err
 	}
-	initializedApp.SetAutocompleter(pgKeywords)
-	cliCtx.App = initializedApp
+
+	pgxCLI.SetAutoCompleteKeywords(pgKeywords)
+	cliCtx.App = pgxCLI
 	return nil
 }
 

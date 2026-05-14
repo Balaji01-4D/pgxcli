@@ -18,7 +18,7 @@ func suggestionsFromFile(contents string) []string {
 	for _, line := range strings.Split(contents, "\n") {
 		line = strings.TrimSpace(line)
 		if line != "" {
-			suggestions = append(suggestions, line)
+			suggestions = append(suggestions, strings.ToUpper(line))
 		}
 	}
 

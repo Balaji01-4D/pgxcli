@@ -12,7 +12,10 @@ import (
 	"strings"
 	"time"
 
+	tea "charm.land/bubbletea/v2"
+	"github.com/balaji01-4d/pgxcli/internal/app/commands"
 	"github.com/balaji01-4d/pgxcli/internal/app/renderer"
+	"github.com/balaji01-4d/pgxcli/internal/app/ui"
 	"github.com/balaji01-4d/pgxcli/internal/cliio"
 	"github.com/balaji01-4d/pgxcli/internal/config"
 	"github.com/balaji01-4d/pgxcli/internal/database"
@@ -24,70 +27,60 @@ import (
 // Application defines the interface for the main application logic.
 type Application interface {
 	// Start starts the main repl loop, reading input, executing commands and printing results until the user exits.
-	Start(ctx context.Context, client *database.Client)
+	Start(ctx context.Context, client *database.Client) error
 
-	// SetAutocompleter sets the autocompleter keywords for the prompt.
-	SetAutocompleter(keywords []string)
+	SetAutoCompleteKeywords(keywords []string)
 
 	// Close performs saving history before exiting.
 	Close() error
 }
 
-// pgxCLI is the main implementation of the Application interface.
-// It holds the prompt reader, printer, history manager, configuration and logger.
-type pgxCLI struct {
-	prompt  Reader
-	Printer cliio.Printer
-	History *history
-	config  *config.Config
-	logger  *slog.Logger
+var builtinsCommand = map[string]func(){
+	"\\clear": commands.ClearScreen,
 }
 
-// New initializes the Application
-// based on configuration, it sets up the history manager, and prompt reader.
-func New(config *config.Config, printer cliio.Printer, logger *slog.Logger) (Application, error) {
-	history, entries := newHistory(config.Main.HistoryFile, logger)
-	reader, err := newReader()
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize prompt reader: %w", err)
-	}
-	if err := applyReaderOptions(reader, config, entries); err != nil {
-		return nil, fmt.Errorf("failed to apply reader options: %w", err)
-	}
+// pgxCLI is the main implementation of the Application interface.
+type pgxCLI struct {
+	model   *ui.Model
+	program *tea.Program
+	Printer cliio.Printer
+	config  *config.Config
+	logger  *slog.Logger
 
+	pgkws []string
+}
+
+func New(cfg *config.Config, printer cliio.Printer, logger *slog.Logger) (Application, error) {
 	return &pgxCLI{
-		config: config, logger: logger, prompt: reader, Printer: printer, History: history,
+		config:  cfg,
+		logger:  logger,
+		Printer: printer,
 	}, nil
 }
 
-func (p *pgxCLI) Start(ctx context.Context, client *database.Client) {
-	for {
-		suffixStr := client.ParsePrompt(p.config.Main.Prompt)
-		rawInput, err := p.prompt.Read(ctx, suffixStr)
-		if err != nil {
-			p.logger.Error("error reading input", "error", err)
-			p.Printer.PrintError(err)
-			continue
-		}
+func (p *pgxCLI) SetAutoCompleteKeywords(keywords []string) {
+	p.pgkws = keywords
+}
 
-		trimmedInput := strings.TrimSpace(rawInput)
+func (p *pgxCLI) execute(ctx context.Context, client *database.Client, query string) tea.Cmd {
+	promptReady := func() tea.Msg {
+		prefix := client.ParsePrompt(p.config.Main.Prompt)
+		return ui.ReadyMsg{Prefix: prefix} // this is used to unblock input after executing a command
+	}
 
-		if trimmedInput == "" {
-			continue
-		}
-		p.logger.Debug("received command", "command_length", len(trimmedInput))
+	p.logger.Debug("received command", "command_length", len(query))
 
-		if cmd, ok := builtinsCommand[trimmedInput]; ok {
-			p.logger.Debug("executing builtin command", "command", trimmedInput)
-			cmd()
-			continue
-		}
+	if cmd, ok := builtinsCommand[query]; ok {
+		p.logger.Debug("executing builtin command", "command", query)
+		cmd()
+		return promptReady
+	}
 
-		metaResult, okay, err := client.ExecuteSpecial(ctx, trimmedInput)
+	return func() tea.Msg {
+		metaResult, okay, err := client.ExecuteSpecial(ctx, query)
 		if err != nil {
 			p.logger.Error("error executing special command", "error", err)
-			p.Printer.PrintError(err)
-			continue
+			return ui.ExecCmdMsg{Cmd: tea.Sequence(p.printError(err), promptReady)}
 		}
 		if okay {
 			start := time.Now()
@@ -95,22 +88,25 @@ func (p *pgxCLI) Start(ctx context.Context, client *database.Client) {
 			result, quit, err := p.handleSpecialCommand(ctx, metaResult, client)
 			if quit {
 				p.logger.Info("REPL exiting via quit command")
-				return
+				return ui.ExecCmdMsg{Cmd: tea.Quit}
 			}
 
 			if err != nil {
 				p.logger.Error("error handling special command", "error", err)
-				p.Printer.PrintError(err)
-				continue
+				errCmd := p.printError(err)
+				return ui.ExecCmdMsg{Cmd: tea.Sequence(errCmd, promptReady)}
 			}
 			execTime := time.Since(start)
-			p.Printer.PrintViaPager(result)
-			p.Printer.PrintTime(execTime)
-			continue
+			timingInfo := fmt.Sprintf("Time %.3fs", execTime.Seconds())
+			return ui.ExecCmdMsg{Cmd: tea.Sequence(
+				p.printViaPager(result+timingInfo),
+				promptReady,
+			)}
 		}
 
 		p.logger.Debug("executing query")
-		stmts := parser.SplitSQLStatements(trimmedInput)
+		stmts := parser.SplitSQLStatements(query)
+		cmds := make([]tea.Cmd, 0, len(stmts)+1) // +1 for prompt ready
 
 	StatementsLoop:
 		for _, stmt := range stmts {
@@ -122,28 +118,48 @@ func (p *pgxCLI) Start(ctx context.Context, client *database.Client) {
 			queryResult, err := client.ExecuteQuery(ctx, stmt)
 			if err != nil {
 				p.logger.Error("query execution failed", "error", err)
-				p.Printer.PrintError(err)
+				cmds = append(cmds, p.printError(err))
 				if p.config.Main.OnError == config.OnErrorStop {
 					break StatementsLoop
 				}
 				continue
 			}
-
-			if err := p.handleQueryResult(queryResult); err != nil {
+			resultCmd, err := p.handleQueryResult(queryResult)
+			if err != nil {
 				p.logger.Error("error handling query result", "error", err)
-				p.Printer.PrintError(err)
+				cmds = append(cmds, p.printError(err))
+				if p.config.Main.OnError == config.OnErrorStop {
+					break StatementsLoop
+				}
 				continue
 			}
+			cmds = append(cmds, resultCmd)
 		}
+		cmds = append(cmds, promptReady)
+
+		return ui.ExecCmdMsg{Cmd: tea.Sequence(cmds...)}
 	}
 }
 
-func (p *pgxCLI) SetAutocompleter(keywords []string) {
-	p.prompt.SetAutocompleter(keywords)
-}
+func (p *pgxCLI) Start(ctx context.Context, client *database.Client) error {
+	executeFunc := func(query string) tea.Cmd {
+		return p.execute(ctx, client, query)
+	}
 
-func (p *pgxCLI) Close() error {
-	return p.History.saveHistory(p.prompt.History())
+	initialPrefix := client.ParsePrompt(p.config.Main.Prompt)
+	m, err := ui.New(initialPrefix, p.pgkws, p.config.Main.HistoryFile, executeFunc)
+	if err != nil {
+		return fmt.Errorf("creating UI model: %w", err)
+	}
+
+	p.model = m
+	p.program = tea.NewProgram(p.model, tea.WithContext(ctx))
+
+	if _, err := p.program.Run(); err != nil {
+		return fmt.Errorf("running UI program: %w", err)
+	}
+
+	return nil
 }
 
 func (p *pgxCLI) handleSpecialCommand(ctx context.Context, metaResult pgxspecial.SpecialCommandResult, client *database.Client) (string, bool, error) {
@@ -155,8 +171,7 @@ func (p *pgxCLI) handleSpecialCommand(ctx context.Context, metaResult pgxspecial
 	case database.ChangeDB:
 		s := metaResult.(database.ChangeDbAction).Name
 		if s != "" {
-			err := client.ChangeDatabase(ctx, s)
-			if err != nil {
+			if err := client.ChangeDatabase(ctx, s); err != nil {
 				return "", false, err
 			}
 		}
@@ -181,11 +196,10 @@ func (p *pgxCLI) handleSpecialCommand(ctx context.Context, metaResult pgxspecial
 			port = strconv.Itoa(int(client.GetPort()))
 		}
 
-		info := fmt.Sprintf(
+		return fmt.Sprintf(
 			"You are connected to database %q as user %q on %s at port %s",
 			client.GetDatabase(), client.GetUser(), host, port,
-		)
-		return info, false, nil
+		), false, nil
 
 	case pgxspecial.ResultKindRows:
 		table, err := renderer.RowsResult(metaResult, p.config)
@@ -214,26 +228,51 @@ func (p *pgxCLI) handleSpecialCommand(ctx context.Context, metaResult pgxspecial
 	}
 }
 
-func (p *pgxCLI) handleQueryResult(r result.Result) error {
+func (p *pgxCLI) handleQueryResult(r result.Result) (tea.Cmd, error) {
 	res, ok := r.(*result.QueryResult)
 	if !ok {
-		return fmt.Errorf("unsupported query result type: %T", r)
+		return nil, fmt.Errorf("unsupported query result type: %T", r)
 	}
 
 	var s strings.Builder
-	err := renderer.Table(res, &s, p.config)
-	if err != nil {
-		return err
+	if err := renderer.Table(res, &s, p.config); err != nil {
+		return nil, err
 	}
+
 	output := s.String()
-	// If columns exist, we printed a table. Append the command tag (e.g., "SELECT 5", "INSERT 0 1").
-	// If no columns, we just print the command tag.
 	if len(res.Columns()) == 0 {
 		output = res.CommandTag()
 	} else {
 		output += res.CommandTag()
 	}
-	p.Printer.PrintViaPager(output)
-	p.Printer.PrintTime(res.Duration())
+
+	// Append timing info to the output
+	timingInfo := fmt.Sprintf("\nTime %.3fs", res.Duration().Seconds())
+	output += timingInfo
+
+	return p.printViaPager(output), nil
+}
+
+func (p *pgxCLI) printViaPager(str string) tea.Cmd {
+	if p.Printer.ShouldUsePager(str) {
+		cmd, ok := cliio.PagerCmd(str)
+		if !ok {
+			return ui.PrintCmd(str)
+		}
+		return ui.ShowPagerCmd(cmd)
+	}
+
+	return ui.PrintCmd(str)
+}
+
+func (p *pgxCLI) printError(err error) tea.Cmd {
+	return ui.PrintErrCmd(err)
+}
+
+func (p *pgxCLI) Close() error {
+	p.logger.Info("closing application and saving history")
+	if p.model != nil {
+		return p.model.Close()
+	}
 	return nil
 }

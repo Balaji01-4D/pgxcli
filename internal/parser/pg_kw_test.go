@@ -12,8 +12,8 @@ func TestLoadPgKeywords(t *testing.T) {
 	keywords := parser.LoadPgKeywords()
 	require.NotEmpty(t, keywords)
 	require.Len(t, keywords, 511)
-	assert.Contains(t, keywords, "select")
-	assert.Contains(t, keywords, "insert")
-	assert.Contains(t, keywords, "update")
-	assert.Contains(t, keywords, "delete")
+	assert.Contains(t, keywords, "SELECT")
+	assert.Contains(t, keywords, "INSERT")
+	assert.Contains(t, keywords, "UPDATE")
+	assert.Contains(t, keywords, "DELETE")
 }

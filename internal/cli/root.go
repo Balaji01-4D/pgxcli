@@ -304,6 +304,7 @@ func connectWithFields(
 	}
 
 	cliCtx.Logger.Debug("Connection failed, prompting for password")
+	fmt.Println("Wrong password, try again")
 	pwd, err := promptPassword()
 	if err != nil {
 		return err

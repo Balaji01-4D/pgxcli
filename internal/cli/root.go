@@ -163,8 +163,21 @@ func resolveConnectionParams(
 	}
 
 	database, user := resolveDBAndUser(dbnameOpt, userOpt, argDB, argUser)
+
 	if user == "" {
 		user = getDefaultUser()
+	}
+
+	if database == "" {
+		database = getDatabaseFromEnv()
+	}
+
+	if hostOpt == "" {
+		hostOpt = getHostFromEnv()
+	}
+
+	if portOpt == 0 {
+		portOpt = getPortFromEnv()
 	}
 
 	return connectionParams{
@@ -174,7 +187,6 @@ func resolveConnectionParams(
 		port:     portOpt,
 	}, nil
 }
-
 func resolveInteractiveConnectionParams(
 	cmd *cobra.Command,
 	argDB string,
@@ -342,17 +354,6 @@ func initApplication(cliCtx *CliContext) error {
 	return nil
 }
 
-// getUserFromEnv gets username from environment variables
-// support for pgcli specific environment variable
-func getUserFromEnv() string {
-	if userEnv := os.Getenv("PGXUSER"); userEnv != "" {
-		return userEnv
-	}
-	if userEnv := os.Getenv("PGUSER"); userEnv != "" {
-		return userEnv
-	}
-	return ""
-}
 
 // when database is given as flag then the next argument as user
 func resolveDBAndUser(dbnameOpt, userOpt, argDB, argUser string) (string, string) {
@@ -437,15 +438,6 @@ func getDefaultUser() string {
 	return osUser
 }
 
-func getPasswordFromEnv() string {
-	if passEnv := os.Getenv("PGXPASSWORD"); passEnv != "" {
-		return passEnv
-	}
-	if passEnv := os.Getenv("PGPASSWORD"); passEnv != "" {
-		return passEnv
-	}
-	return ""
-}
 
 func osUsername() string {
 	currentUser, err := user.Current()

@@ -81,7 +81,7 @@ func (e *executor) queryOne(ctx context.Context, sql string, args ...any) (resul
 	return result.NewQuery(rows, dur), nil
 }
 
-// query executes a multiple SQL queries in a single string 
+// query executes a multiple SQL queries in a single string
 // for example: "SELECT 1; SELECT 2;"
 func (e *executor) query(ctx context.Context, sql string) (result.Result, error) {
 	e.Logger.Debug("Executing multi-query", "sql", sql)

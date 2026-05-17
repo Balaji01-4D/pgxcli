@@ -13,9 +13,9 @@ type mockRows struct {
 	tag pgconn.CommandTag
 }
 
-func (m *mockRows) Next() bool { return false }
-func (m *mockRows) Close()     {}
-func (m *mockRows) Err() error { return nil }
+func (m *mockRows) Next() bool                    { return false }
+func (m *mockRows) Close()                        {}
+func (m *mockRows) Err() error                    { return nil }
 func (m *mockRows) CommandTag() pgconn.CommandTag { return m.tag }
 
 func TestMultiQueryResult_Columns_Nil(t *testing.T) {

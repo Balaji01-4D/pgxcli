@@ -17,7 +17,7 @@ type QueryResult struct {
 func NewQuery(rows pgx.Rows, duration time.Duration) *QueryResult {
 	return &QueryResult{
 		rowStreamer: rowStreamer{
-			rows:     rows,
+			rows: rows,
 		},
 		duration: duration,
 	}
@@ -61,9 +61,9 @@ func (r *QueryResult) Rows() ([][]any, error) {
 func (r *QueryResult) Caption() string { return "" } // TODO: add execution time or row count
 
 type rowStreamer struct {
-	rows     pgx.Rows
-	columns  []string
-	closed   bool
+	rows    pgx.Rows
+	columns []string
+	closed  bool
 }
 
 // Next returns the next row as []any or io.EOF when done.
@@ -105,7 +105,6 @@ func (r *rowStreamer) Close() error {
 	r.closed = true
 	return nil
 }
-
 
 // CommandTag returns the PostgreSQL command tag for the streamed rows.
 func (r *rowStreamer) CommandTag() string {

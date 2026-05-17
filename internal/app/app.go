@@ -116,7 +116,6 @@ func (p *pgxCLI) execute(ctx context.Context, client *database.Client, query str
 			return ui.ExecCmdMsg{Cmd: tea.Sequence(resultCmd, promptReady)}
 		}
 
-
 		p.logger.Debug("executing query")
 		stmts := parser.SplitSQLStatements(query)
 		cmds := make([]tea.Cmd, 0, len(stmts)+1) // +1 for prompt ready
@@ -254,7 +253,10 @@ func (p *pgxCLI) handleMultiQueryResult(r result.Result) (tea.Cmd, error) {
 		if len(columns) == 0 { // then it is non-query result which returns a rows.
 			// Consume the empty result set to populate the CommandTag
 			if _, err := multiRes.Rows(); err != nil {
-				renderer.Error(err, &s)
+				err := renderer.Error(err, &s)
+				if err != nil {
+					return nil, err
+				}
 				continue
 			}
 			s.WriteString(multiRes.CommandTag())
@@ -264,13 +266,20 @@ func (p *pgxCLI) handleMultiQueryResult(r result.Result) (tea.Cmd, error) {
 
 		rows, err := multiRes.Rows()
 		if err != nil {
-			renderer.Error(err, &s)
+			wErr := renderer.Error(err, &s)
+			if wErr != nil {
+				return nil, wErr
+			}
 			continue
 		}
-		
+
 		tableData := renderer.NewTableData(columns, rows, multiRes.CommandTag())
 		if err := renderer.Table(tableData, &s, p.config); err != nil {
-			renderer.Error(err, &s)
+			wErr := renderer.Error(err, &s)
+			if wErr != nil {
+				return nil, wErr
+			}
+
 			continue
 		}
 		s.WriteString("\n")

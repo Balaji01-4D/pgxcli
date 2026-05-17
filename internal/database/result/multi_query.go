@@ -10,15 +10,15 @@ import (
 )
 
 type MultiQueryResult struct {
-	mrr *pgconn.MultiResultReader
-	currRow *rowStreamer
-	start time.Time
+	mrr      *pgconn.MultiResultReader
+	currRow  *rowStreamer
+	start    time.Time
 	duration time.Duration
 }
 
 func NewMultiQuery(mrr *pgconn.MultiResultReader, startedAt time.Time) *MultiQueryResult {
 	return &MultiQueryResult{
-		mrr: mrr,
+		mrr:   mrr,
 		start: startedAt,
 	}
 }

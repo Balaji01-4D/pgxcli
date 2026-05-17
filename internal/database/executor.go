@@ -89,7 +89,7 @@ func (e *executor) query(ctx context.Context, sql string) (result.Result, error)
 	start := time.Now()
 	mrr := e.Conn.PgConn().Exec(ctx, sql)
 
-	return result.NewMultiQuery(mrr, start), nil
+	return result.NewMultiQuery(mrr, start, e.Conn.TypeMap()), nil
 }
 
 func (e *executor) executeSpecial(ctx context.Context, cmd string) (pgxspecial.SpecialCommandResult, bool, error) {

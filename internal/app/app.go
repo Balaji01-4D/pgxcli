@@ -282,7 +282,6 @@ func (p *pgxCLI) handleMultiQueryResult(r result.Result) (tea.Cmd, error) {
 
 			continue
 		}
-		s.WriteString("\n")
 	}
 
 	if err := multiRes.Close(); err != nil {
@@ -291,7 +290,7 @@ func (p *pgxCLI) handleMultiQueryResult(r result.Result) (tea.Cmd, error) {
 
 	output := s.String()
 	// Append timing info to the output
-	timingInfo := fmt.Sprintf("\nTime %.3fs", multiRes.Duration().Seconds())
+	timingInfo := fmt.Sprintf("Time %.3fs", multiRes.Duration().Seconds())
 	output += timingInfo
 
 	return p.printViaPager(output), nil

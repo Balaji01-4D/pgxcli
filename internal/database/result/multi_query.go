@@ -13,13 +13,15 @@ type MultiQueryResult struct {
 	mrr      *pgconn.MultiResultReader
 	currRow  *rowStreamer
 	start    time.Time
+	pgMap 	 *pgtype.Map
 	duration time.Duration
 }
 
-func NewMultiQuery(mrr *pgconn.MultiResultReader, startedAt time.Time) *MultiQueryResult {
+func NewMultiQuery(mrr *pgconn.MultiResultReader, startedAt time.Time, pgMap *pgtype.Map) *MultiQueryResult {
 	return &MultiQueryResult{
 		mrr:   mrr,
 		start: startedAt,
+		pgMap: pgMap,
 	}
 }
 
@@ -72,7 +74,7 @@ func (r *MultiQueryResult) Next() bool {
 
 	if r.mrr.NextResult() {
 		rr := r.mrr.ResultReader()
-		rows := pgx.RowsFromResultReader(pgtype.NewMap(), rr)
+		rows := pgx.RowsFromResultReader(r.pgMap, rr)
 		cols := columnsFromRows(rows)
 
 		r.currRow = &rowStreamer{

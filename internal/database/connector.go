@@ -2,6 +2,8 @@ package database
 
 import (
 	"context"
+	"net"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -64,6 +66,13 @@ func (c *pgConnector) Password() string {
 // Connect opens a new pgx connection using the connector configuration.
 func (c *pgConnector) Connect(ctx context.Context) (*pgx.Conn, error) {
 	c.cfg.DefaultQueryExecMode = pgx.QueryExecModeExec
+
+	dialer := &net.Dialer{}
+	dialer.Timeout = 5 * time.Second
+	if c.cfg.ConnectTimeout > 0 {
+		dialer.Timeout = c.cfg.ConnectTimeout
+	}
+	c.cfg.DialFunc = dialer.DialContext
 
 	conn, err := pgx.ConnectConfig(ctx, c.cfg)
 	if err != nil {

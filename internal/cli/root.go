@@ -273,7 +273,7 @@ func connectWithFields(
 	}
 
 	if forcePrompt && password == "" {
-		pwd, err := promptPassword()
+		pwd, err := promptPassword("Enter password")
 		if err != nil {
 			return err
 		}
@@ -304,7 +304,8 @@ func connectWithFields(
 	}
 
 	cliCtx.Logger.Debug("Connection failed, prompting for password")
-	pwd, err := promptPassword()
+	fmt.Fprintln(os.Stderr, "Wrong password, try again.")
+	pwd, err := promptPassword("Enter password again")
 	if err != nil {
 		return err
 	}
@@ -387,8 +388,8 @@ func parsePositionalDBAndUser(args []string) (string, string) {
 	return db, user
 }
 
-func promptPassword() (string, error) {
-	fmt.Print("Password: ")
+func promptPassword(s string) (string, error) {
+	fmt.Printf("%s: ", s)
 	fd := int(os.Stdin.Fd())
 	oldState, err := term.GetState(fd)
 	if err != nil {

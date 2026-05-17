@@ -11,12 +11,15 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type conn interface {
 	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
+	PgConn() *pgconn.PgConn
+	TypeMap() *pgtype.Map
 	Config() *pgx.ConnConfig
 	Ping(ctx context.Context) error
 	Close(ctx context.Context) error
@@ -63,8 +66,8 @@ func newExecutor(ctx context.Context, c Connector, logger *slog.Logger) (*execut
 	}, nil
 }
 
-// For executing queries like SELECT, SHOW etc.
-func (e *executor) query(ctx context.Context, sql string, args ...any) (result.Result, error) {
+// queryOne executes a single SQL query.
+func (e *executor) queryOne(ctx context.Context, sql string, args ...any) (result.Result, error) {
 	e.Logger.Debug("Executing query", "sql", sql)
 	start := time.Now()
 	rows, err := e.Conn.Query(ctx, sql, args...)
@@ -78,9 +81,15 @@ func (e *executor) query(ctx context.Context, sql string, args ...any) (result.R
 	return result.NewQuery(rows, dur), nil
 }
 
-// execute determines whether to run query or exec based on SQL type.
-func (e *executor) execute(ctx context.Context, sql string, args ...any) (result.Result, error) {
-	return e.query(ctx, sql, args...)
+// query executes a multiple SQL queries in a single string 
+// for example: "SELECT 1; SELECT 2;"
+func (e *executor) query(ctx context.Context, sql string) (result.Result, error) {
+	e.Logger.Debug("Executing multi-query", "sql", sql)
+
+	start := time.Now()
+	mrr := e.Conn.PgConn().Exec(ctx, sql)
+
+	return result.NewMultiQuery(mrr, start), nil
 }
 
 func (e *executor) executeSpecial(ctx context.Context, cmd string) (pgxspecial.SpecialCommandResult, bool, error) {

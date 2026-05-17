@@ -11,14 +11,15 @@ import (
 // QueryResult represents a row-producing SQL execution result.
 type QueryResult struct {
 	rowStreamer
+	duration time.Duration
 }
 
 func NewQuery(rows pgx.Rows, duration time.Duration) *QueryResult {
 	return &QueryResult{
 		rowStreamer: rowStreamer{
 			rows:     rows,
-			duration: duration,
 		},
+		duration: duration,
 	}
 }
 
@@ -26,6 +27,9 @@ func (r *QueryResult) Type() Type {
 	return ResultTypeQuery
 }
 
+func (r *QueryResult) Duration() time.Duration {
+	return r.duration
+}
 func (r *QueryResult) Columns() []string {
 	if r.columns == nil {
 		fds := r.rows.FieldDescriptions()
@@ -60,7 +64,6 @@ type rowStreamer struct {
 	rows     pgx.Rows
 	columns  []string
 	closed   bool
-	duration time.Duration
 }
 
 // Next returns the next row as []any or io.EOF when done.
@@ -103,12 +106,9 @@ func (r *rowStreamer) Close() error {
 	return nil
 }
 
-func (r *rowStreamer) Duration() time.Duration {
-	return r.duration
-}
 
 // CommandTag returns the PostgreSQL command tag for the streamed rows.
-func (r *QueryResult) CommandTag() string {
+func (r *rowStreamer) CommandTag() string {
 	return r.rows.CommandTag().String()
 }
 

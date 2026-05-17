@@ -52,9 +52,15 @@ func (c *Client) ExecuteSpecial(ctx context.Context, command string) (pgxspecial
 	return c.executor.executeSpecial(ctx, command)
 }
 
-// ExecuteQuery runs SQL through the underlying executor and returns typed results.
-func (c *Client) ExecuteQuery(ctx context.Context, query string) (result.Result, error) {
-	return c.executor.execute(ctx, query)
+// QueryOne runs SQL through the underlying executor and returns typed results.
+func (c *Client) QueryOne(ctx context.Context, query string) (result.Result, error) {
+	return c.executor.queryOne(ctx, query)
+}
+
+// Query runs multiple SQL queries in a single string.
+// by sending them together, we can save round trips to the database.
+func (c *Client) Query(ctx context.Context, query string) (result.Result, error) {
+	return c.executor.query(ctx, query)
 }
 
 // IsConnected reports whether the client currently has an active connection.

@@ -69,7 +69,7 @@ func TestExecutorQuery(t *testing.T) {
 			conn.On("Query", ctx, tc.query).Return(tc.rows, tc.queryErr)
 
 			exec := &executor{Conn: conn, Logger: slog.Default()}
-			result, err := exec.query(ctx, tc.query)
+			result, err := exec.queryOne(ctx, tc.query)
 
 			if tc.wantErr {
 				assert.Nil(t, result)
@@ -150,7 +150,7 @@ func TestExecutorExecute(t *testing.T) {
 			conn.On("Query", ctx, tc.query).Return(tc.rows, tc.queryErr)
 
 			exec := &executor{Conn: conn, Logger: slog.Default()}
-			result, err := exec.execute(ctx, tc.query)
+			result, err := exec.queryOne(ctx, tc.query)
 
 			if tc.wantErr {
 				assert.Nil(t, result)

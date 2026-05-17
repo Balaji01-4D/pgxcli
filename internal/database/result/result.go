@@ -5,6 +5,7 @@ type Type int
 const (
 	ResultTypeQuery Type = iota
 	ResultTypeSpecial
+	ResultTypeMultiQuery
 	ResultTypeError
 )
 

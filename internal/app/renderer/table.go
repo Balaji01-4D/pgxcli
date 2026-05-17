@@ -16,6 +16,33 @@ type Data interface {
 	Caption() string
 }
 
+// TableData implements the Data interface.
+type TableData struct {
+	columns []string
+	rows    [][]any
+	caption string
+}
+
+func NewTableData(columns []string, rows [][]any, caption string) *TableData {
+	return &TableData{
+		columns: columns,
+		rows:    rows,
+		caption: caption,
+	}
+}
+
+func (t *TableData) Columns() []string {
+	return t.columns
+}
+
+func (t *TableData) Rows() ([][]any, error) {
+	return t.rows, nil
+}
+
+func (t *TableData) Caption() string {
+	return t.caption
+}
+
 func Table(data Data, w io.Writer, c *config.Config) error {
 	t := tablewriter.NewTable(w, tablewriter.WithRenderer(renderer.NewColorized(GetTableStyle(c))))
 	rows, err := data.Rows()

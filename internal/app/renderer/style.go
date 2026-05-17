@@ -7,6 +7,8 @@ import (
 	"github.com/olekukonko/tablewriter/tw"
 )
 
+var red = color.New(color.FgHiRed)
+
 type ColorField string
 
 const (

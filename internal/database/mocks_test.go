@@ -6,6 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -28,6 +29,8 @@ func (mc *MockConn) Ping(ctx context.Context) error {
 	return argMocks.Error(0)
 }
 
+func (mc *MockConn) PgConn() *pgconn.PgConn { return &pgconn.PgConn{} }
+func (mc *MockConn) TypeMap() *pgtype.Map   { return &pgtype.Map{} }
 func (mc *MockConn) QueryRow(_ context.Context, _ string, _ ...any) pgx.Row { return nil }
 func (mc *MockConn) Close(_ context.Context) error                          { return nil }
 func (mc *MockConn) Config() *pgx.ConnConfig                                { return nil }

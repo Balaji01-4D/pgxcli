@@ -99,6 +99,24 @@ func (p *pgxCLI) execute(ctx context.Context, client *database.Client, query str
 			)}
 		}
 
+		if p.config.Main.OnError == config.OnErrorResume {
+			mrr, err := client.Query(ctx, query)
+			if err != nil {
+				p.logger.Error("multi-query execution failed", "error", err)
+				errCmd := p.printError(err)
+				return ui.ExecCmdMsg{Cmd: tea.Sequence(errCmd, promptReady)}
+			}
+
+			resultCmd, err := p.handleMultiQueryResult(mrr)
+			if err != nil {
+				p.logger.Error("error handling multi-query result", "error", err)
+				errCmd := p.printError(err)
+				return ui.ExecCmdMsg{Cmd: tea.Sequence(errCmd, promptReady)}
+			}
+			return ui.ExecCmdMsg{Cmd: tea.Sequence(resultCmd, promptReady)}
+		}
+
+
 		p.logger.Debug("executing query")
 		stmts := parser.SplitSQLStatements(query)
 		cmds := make([]tea.Cmd, 0, len(stmts)+1) // +1 for prompt ready
@@ -110,7 +128,7 @@ func (p *pgxCLI) execute(ctx context.Context, client *database.Client, query str
 				continue
 			}
 
-			queryResult, err := client.ExecuteQuery(ctx, stmt)
+			queryResult, err := client.QueryOne(ctx, stmt)
 			if err != nil {
 				p.logger.Error("query execution failed", "error", err)
 				cmds = append(cmds, p.printError(err))
@@ -221,6 +239,53 @@ func (p *pgxCLI) handleSpecialCommand(ctx context.Context, metaResult pgxspecial
 	default:
 		return "", false, nil
 	}
+}
+
+func (p *pgxCLI) handleMultiQueryResult(r result.Result) (tea.Cmd, error) {
+	multiRes, ok := r.(*result.MultiQueryResult)
+	if !ok {
+		return nil, fmt.Errorf("unsupported multi-query result type: %T", r)
+	}
+
+	var s strings.Builder
+
+	for multiRes.Next() {
+		columns := multiRes.Columns()
+		if len(columns) == 0 { // then it is non-query result which returns a rows.
+			// Consume the empty result set to populate the CommandTag
+			if _, err := multiRes.Rows(); err != nil {
+				renderer.Error(err, &s)
+				continue
+			}
+			s.WriteString(multiRes.CommandTag())
+			s.WriteString("\n")
+			continue
+		}
+
+		rows, err := multiRes.Rows()
+		if err != nil {
+			renderer.Error(err, &s)
+			continue
+		}
+		
+		tableData := renderer.NewTableData(columns, rows, multiRes.CommandTag())
+		if err := renderer.Table(tableData, &s, p.config); err != nil {
+			renderer.Error(err, &s)
+			continue
+		}
+		s.WriteString("\n")
+	}
+
+	if err := multiRes.Close(); err != nil {
+		return nil, err
+	}
+
+	output := s.String()
+	// Append timing info to the output
+	timingInfo := fmt.Sprintf("\nTime %.3fs", multiRes.Duration().Seconds())
+	output += timingInfo
+
+	return p.printViaPager(output), nil
 }
 
 func (p *pgxCLI) handleQueryResult(r result.Result) (tea.Cmd, error) {

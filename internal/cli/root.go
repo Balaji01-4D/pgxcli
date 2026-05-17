@@ -173,6 +173,9 @@ func resolveConnectionParams(
 
 	if database == "" {
 		database = getDatabaseFromEnv()
+		if database == "" {
+			database = user
+		}
 	}
 
 	if hostOpt == "" {

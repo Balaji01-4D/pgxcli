@@ -70,9 +70,9 @@ pgxcli -i -h myhost -d mydb
 
 ## Password Handling
 
-By default, pgxcli tries to connect without a password first. If the server rejects the attempt with an authentication error, it prompts you automatically.
+By default, pgxcli tries to connect without a password first. If the server rejects the attempt with an authentication error, it prompts you for a password . If the password is incorrect, you will be prompted to retry.
 
-You can control this:
+You can control this behavior:
 
 | Flag | Behavior |
 |------|----------|

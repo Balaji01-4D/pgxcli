@@ -31,6 +31,7 @@ pgxcli also respects the standard `libpq` environment variables:
 | `PGHOST` | Default host address |
 | `PGPORT` | Default port number |
 | `PGDATABASE` | Default database name |
+| `PGCONNECT_TIMEOUT` | Connection dialer timeout in seconds |
 
 These work exactly like they do with `psql` or any other `libpq`-based tool.
 

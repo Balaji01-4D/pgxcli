@@ -1,5 +1,5 @@
 export const removeDefaultStemmer = false;
-export { default as Mark } from "/home/balaji/projects/pgxcli/node_modules/mark.js/dist/mark.js"
+export { default as Mark } from "/home/balaji/projects/pgxcli/docs-site/node_modules/mark.js/dist/mark.js"
 export const searchResultContextMaxLength = 50;
 export const explicitSearchResultPath = false;
 export const searchBarShortcut = true;

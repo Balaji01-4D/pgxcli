@@ -621,3 +621,67 @@ tr:hover td {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--pgx-accent);
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   CUSTOM GITHUB NAVBAR ITEM
+───────────────────────────────────────────────────────────────────────────── */
+.custom-github-nav-item {
+  display: flex !important;
+  align-items: center;
+  padding: 0 0.5rem !important;
+  font-family: var(--ifm-font-family-base) !important;
+}
+
+.github-nav-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.github-logo {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  opacity: 0.8;
+  transition: opacity 0.15s;
+}
+
+.custom-github-nav-item:hover .github-logo {
+  opacity: 1;
+}
+
+.github-nav-details {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.github-nav-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ifm-font-color-base);
+  margin-bottom: 2px;
+}
+
+.github-nav-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.65rem;
+  color: var(--ifm-font-color-base);
+  opacity: 0.6;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.stat-item svg {
+  opacity: 0.7;
+}
+
+.custom-github-nav-item:hover .github-nav-stats {
+  opacity: 0.9;
+}

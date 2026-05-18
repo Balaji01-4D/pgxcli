@@ -26,3 +26,13 @@ pgxcli automatically detects your terminal's color depth — TrueColor, 256-colo
 pgxcli offers word-based completion for SQL keywords. Press `Tab` to cycle through suggestions.
 
 ![pgxcli autocompletion in action](/img/completion.gif)
+
+---
+
+## External Editor Support
+
+For complex queries, you can launch your favorite text editor directly from the REPL.
+
+Press `Ctrl+E` to open the current query in the editor defined by your `$EDITOR` environment variable (e.g., `vim`, `nano`, `code`). When you save and exit the editor, the query is automatically brought back to the prompt, ready for execution.
+
+---

@@ -44,25 +44,27 @@ type Model struct {
 	executing     bool
 	prevUserInput string
 	historyFile   string
+	style         string
 
 	// execute executes a query passed and return as ExecCmdMsg + ReadyMsg.
 	execute func(string) tea.Cmd
 }
 
-func New(initialPrefix string, pgKeywords []string, historyFile string, executeFunc func(string) tea.Cmd) (*Model, error) {
+func New(initialPrefix string, pgKeywords []string, historyFile string, style string, executeFunc func(string) tea.Cmd) (*Model, error) {
 	el := editline.New(0, 0)
 	el.Prompt = initialPrefix
 	if historyFile == "" || historyFile == config.Default {
 		historyFile = getHistoryFilePath()
 	}
 
-	if err := applyEditlineConfig(el, historyFile, pgKeywords); err != nil {
+	if err := applyEditlineConfig(el, historyFile, pgKeywords, style); err != nil {
 		return nil, fmt.Errorf("applying input config: %w", err)
 	}
 
 	return &Model{
 		input:       el,
 		historyFile: historyFile,
+		style:       style,
 		execute:     executeFunc,
 	}, nil
 }
@@ -137,7 +139,7 @@ func (m *Model) handleInput() (tea.Model, tea.Cmd) {
 func (m *Model) printUserInput(prefix, input string) tea.Cmd {
 	var highlightedInput string
 	if input != "" {
-		highlightedInput = postgresHighlighter("monokai")(input)
+		highlightedInput = postgresHighlighter(m.style)(input)
 	}
 
 	userContent := lipgloss.JoinHorizontal(lipgloss.Left, userInputStyle.Render(prefix), highlightedInput)
@@ -240,9 +242,9 @@ func detectTerminalColorProfile() string {
 	}
 }
 
-func applyEditlineConfig(el *editline.Model, historyFile string, pgKeywords []string) error {
+func applyEditlineConfig(el *editline.Model, historyFile string, pgKeywords []string, style string) error {
 	el.SetHelpDisabled(true)
-	el.SetHighlighter(postgresHighlighter("monokai"))
+	el.SetHighlighter(postgresHighlighter(style))
 	el.SetExternalEditorEnabled(true, "sql")
 	el.KeyMap.ExternalEdit = key.NewBinding(
 		key.WithKeys("ctrl+e"),

@@ -142,7 +142,7 @@ func (p *pgxCLI) Start(ctx context.Context, client *database.Client) error {
 	}
 
 	initialPrefix := client.ParsePrompt(p.config.Main.Prompt)
-	m, err := ui.New(initialPrefix, p.completer.GetKeyWords(), p.config.Main.HistoryFile, executeFunc)
+	m, err := ui.New(initialPrefix, p.completer.GetKeyWords(), p.config.Main.HistoryFile, string(p.config.Main.Style), executeFunc)
 	if err != nil {
 		return fmt.Errorf("creating UI model: %w", err)
 	}
